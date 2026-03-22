@@ -5,18 +5,19 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0" />
   <title>TipJar - Send love onchain</title>
 
-  <!-- Open Graph (required for Warpcast card preview) -->
+  <!-- Open Graph -->
   <meta property="og:title" content="TipJar - Tip creators on Base" />
   <meta property="og:description" content="Send USDC or ETH tips to your favorite Farcaster creators. Onchain on Base." />
-  <meta property="og:image" content="https://placehold.co/1200x630/7c5cfc/ffffff?text=TipJar+%F0%9F%92%B8" />
+  <meta property="og:image" content="https://placehold.co/1200x630/7c5cfc/ffffff?text=TipJar" />
   <meta property="og:url" content="https://tipjar-chi-snowy.vercel.app" />
 
-  <!-- Farcaster Frame meta tags (individual format - required for Warpcast) -->
+  <!-- Farcaster Mini App tags -->
   <meta name="fc:frame" content="vNext" />
-  <meta name="fc:frame:image" content="https://placehold.co/1200x630/7c5cfc/ffffff?text=TipJar+%F0%9F%92%B8" />
+  <link rel="manifest" href="/.well-known/farcaster.json" />
+  <meta name="fc:frame:image" content="https://placehold.co/1200x630/7c5cfc/ffffff?text=TipJar" />
   <meta name="fc:frame:image:aspect_ratio" content="1.91:1" />
-  <meta name="fc:frame:button:1" content="Open TipJar 💸" />
-  <meta name="fc:frame:button:1:action" content="link" />
+  <meta name="fc:frame:button:1" content="Open TipJar" />
+  <meta name="fc:frame:button:1:action" content="launch_frame" />
   <meta name="fc:frame:button:1:target" content="https://tipjar-chi-snowy.vercel.app" />
 
   <script src="https://cdn.jsdelivr.net/npm/@farcaster/frame-sdk@latest/dist/index.umd.js"></script>
@@ -47,8 +48,6 @@
     .avatar-chip:hover { border-color: var(--accent); }
     .avatar-chip img { width: 26px; height: 26px; border-radius: 50%; object-fit: cover; }
     .avatar-placeholder { width: 26px; height: 26px; border-radius: 50%; background: linear-gradient(135deg, var(--accent), var(--accent2)); display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 700; }
-
-    /* WALLET MODAL */
     .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.75); backdrop-filter: blur(8px); z-index: 300; display: none; align-items: flex-end; justify-content: center; }
     .modal-overlay.open { display: flex; animation: fadeIn 0.2s ease; }
     @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
@@ -72,8 +71,6 @@
     .btn-wallet-disconnect { width: 100%; padding: 15px; background: transparent; border: 1px solid rgba(252,92,125,0.5); border-radius: 16px; color: var(--accent2); font-family: var(--font-head); font-size: 15px; font-weight: 700; cursor: pointer; margin-bottom: 10px; transition: background 0.15s; }
     .btn-wallet-disconnect:hover { background: rgba(252,92,125,0.08); }
     .btn-wallet-cancel { width: 100%; padding: 12px; background: transparent; border: none; color: var(--muted); font-family: var(--font-head); font-size: 14px; font-weight: 600; cursor: pointer; }
-
-    /* APP STYLES */
     .hero { text-align: center; padding: 40px 0 32px; }
     .hero-icon { width: 72px; height: 72px; margin: 0 auto 20px; background: linear-gradient(135deg, var(--accent), var(--accent2)); border-radius: 24px; display: flex; align-items: center; justify-content: center; font-size: 32px; box-shadow: 0 20px 60px rgba(124,92,252,0.4); animation: float 3s ease-in-out infinite; }
     @keyframes float { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-8px); } }
