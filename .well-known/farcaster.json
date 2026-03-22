@@ -1,0 +1,17 @@
+{
+  "accountAssociation": {
+    "header": "eyJmaWQiOjE5MDkyNTksInR5cGUiOiJjdXN0b2R5Iiwia2V5IjoiMHhBMjFmOEMyRDcwZDY0MGUxNThDYzlFQjhBNzdCOTNENDVCNEQ1MjI4In0",
+    "payload": "eyJkb21haW4iOiJ0aXBqYXItY2hpLXNub3d5LnZlcmNlbC5hcHAifQ",
+    "signature": "YKytvI9WIY/YYWdeuJy7wZjZSEM66sUE/PUNoKIuGNM0lASp2WVloDgLoTLCnAbrL/Ip9GeU81UtrnH07zI50xw="
+  },
+  "frame": {
+    "version": "1",
+    "name": "TipJar",
+    "iconUrl": "https://placehold.co/200x200/7c5cfc/ffffff?text=TipJar",
+    "homeUrl": "https://tipjar-chi-snowy.vercel.app",
+    "imageUrl": "https://placehold.co/1200x630/7c5cfc/ffffff?text=TipJar+%F0%9F%92%B8",
+    "buttonTitle": "Open TipJar 💸",
+    "splashImageUrl": "https://placehold.co/200x200/7c5cfc/ffffff?text=TipJar",
+    "splashBackgroundColor": "#0a0a0f"
+  }
+}
