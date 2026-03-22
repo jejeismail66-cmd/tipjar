@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0" />
+  <title>TipJar — Send love onchain</title>
+  <meta name="fc:frame" content='{"version":"next","imageUrl":"https://tipjar-chi-snowy.vercel.app/og.png","button":{"title":"💸 Open TipJar","action":{"type":"launch_frame","url":"https://tipjar-chi-snowy.vercel.app"}}}' />
+  <script src="https://cdn.jsdelivr.net/npm/@farcaster/frame-sdk@latest/dist/index.umd.js"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #0a0a0f; --surface: #13131a; --surface2: #1c1c27;
+      --border: rgba(255,255,255,0.07); --accent: #7c5cfc;
+      --accent2: #fc5c7d; --green: #22d3a5; --text: #f0f0f8;
+      --muted: #6b6b80; --font-head: 'Syne', sans-serif; --font-mono: 'DM Mono', monospace;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { background: var(--bg); color: var(--text); font-family: var(--font-head); min-height: 100vh; overflow-x: hidden; }
+    .bg-blob { position: fixed; border-radius: 50%; filter: blur(80px); opacity: 0.15; pointer-events: none; z-index: 0; }
+    .blob1 { width: 400px; height: 400px; background: var(--accent); top: -100px; right: -100px; }
+    .blob2 { width: 300px; height: 300px; background: var(--accent2); bottom: 50px; left: -80px; }
+    .blob3 { width: 200px; height: 200px; background: var(--green); top: 40%; left: 40%; }
+    .app { position: relative; z-index: 1; max-width: 420px; margin: 0 auto; min-height: 100vh; display: flex; flex-direction: column; }
+    .screen { display: none; flex-direction: column; flex: 1; padding: 24px 20px 32px; }
+    .screen.active { display: flex; animation: fadeUp 0.4s cubic-bezier(0.22,1,0.36,1) both; }
+    @keyframes fadeUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+    .top-bar { display: flex; align-items: center; justify-content: space-between; padding: 20px 20px 0; position: relative; z-index: 1; }
+    .logo { font-size: 18px; font-weight: 800; letter-spacing: -0.5px; }
+    .logo span { color: var(--accent2); }
+    .avatar-chip { display: flex; align-items: center; gap: 8px; background: var(--surface2); border: 1px solid var(--border); border-radius: 99px; padding: 6px 12px 6px 6px; font-size: 13px; font-weight: 600; }
+    .avatar-chip img { width: 26px; height: 26px; border-radius: 50%; object-fit: cover; }
+    .avatar-placeholder { width: 26px; height: 26px; border-radius: 50%; background: linear-gradient(135deg, var(--accent), var(--accent2)); display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 700; }
+    .hero { text-align: center; padding: 40px 0 32px; }
+    .hero-icon { width: 72px; height: 72px; margin: 0 auto 20px; background: linear-gradient(135deg, var(--accent), var(--accent2)); border-radius: 24px; display: flex; align-items: center; justify-content: center; font-size: 32px; box-shadow: 0 20px 60px rgba(124,92,252,0.4); animation: float 3s ease-in-out infinite; }
+    @keyframes float { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-8px); } }
+    .hero h1 { font-size: 28px; font-weight: 800; letter-spacing: -1px; line-height: 1.1; margin-bottom: 10px; }
+    .hero h1 em { font-style: normal; color: var(--accent2); }
+    .hero p { color: var(--muted); font-size: 14px; font-weight: 400; font-family: var(--font-mono); line-height: 1.5; }
+    .stats-row { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; margin-bottom: 28px; }
+    .stat-card { background: var(--surface); border: 1px solid var(--border); border-radius: 16px; padding: 14px 10px; text-align: center; }
+    .stat-card .val { font-size: 18px; font-weight: 800; letter-spacing: -0.5px; color: var(--green); display: block; }
+    .stat-card .lbl { font-size: 10px; color: var(--muted); font-family: var(--font-mono); margin-top: 2px; display: block; }
+    .action-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 28px; }
+    .action-card { background: var(--surface); border: 1px solid var(--border); border-radius: 20px; padding: 20px 16px; cursor: pointer; transition: all 0.2s; position: relative; overflow: hidden; }
+    .action-card::before { content: ''; position: absolute; inset: 0; opacity: 0; transition: opacity 0.2s; }
+    .action-card.send::before { background: linear-gradient(135deg, rgba(124,92,252,0.15), transparent); }
+    .action-card.receive::before { background: linear-gradient(135deg, rgba(34,211,165,0.15), transparent); }
+    .action-card:hover::before, .action-card:active::before { opacity: 1; }
+    .action-card:active { transform: scale(0.97); }
+    .action-card .icon { font-size: 24px; margin-bottom: 10px; display: block; }
+    .action-card .card-title { font-size: 15px; font-weight: 700; display: block; margin-bottom: 4px; }
+    .action-card .card-desc { font-size: 11px; color: var(--muted); font-family: var(--font-mono); line-height: 1.4; }
+    .section-label { font-size: 11px; font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase; color: var(--muted); margin-bottom: 12px; font-family: var(--font-mono); }
+    .activity-list { display: flex; flex-direction: column; gap: 8px; }
+    .activity-item { display: flex; align-items: center; gap: 12px; background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 12px 14px; }
+    .activity-avatar { width: 36px; height: 36px; border-radius: 50%; background: linear-gradient(135deg, var(--accent), var(--accent2)); display: flex; align-items: center; justify-content: center; font-size: 14px; flex-shrink: 0; }
+    .activity-info { flex: 1; }
+    .activity-name { font-size: 13px; font-weight: 700; margin-bottom: 2px; }
+    .activity-msg { font-size: 11px; color: var(--muted); font-family: var(--font-mono); }
+    .activity-amount { font-size: 14px; font-weight: 700; font-family: var(--font-mono); }
+    .activity-amount.positive { color: var(--green); }
+    .activity-amount.negative { color: var(--accent2); }
+    .screen-header { display: flex; align-items: center; gap: 12px; margin-bottom: 28px; }
+    .back-btn { width: 38px; height: 38px; background: var(--surface2); border: 1px solid var(--border); border-radius: 12px; display: flex; align-items: center; justify-content: center; cursor: pointer; font-size: 16px; flex-shrink: 0; transition: background 0.15s; }
+    .back-btn:hover { background: var(--surface); }
+    .screen-title { font-size: 22px; font-weight: 800; letter-spacing: -0.5px; }
+    .search-box { background: var(--surface); border: 1px solid var(--border); border-radius: 16px; padding: 14px 16px; display: flex; align-items: center; gap: 10px; margin-bottom: 20px; transition: border-color 0.2s; }
+    .search-box:focus-within { border-color: var(--accent); }
+    .search-box input { background: none; border: none; outline: none; color: var(--text); font-family: var(--font-head); font-size: 15px; font-weight: 600; flex: 1; width: 100%; }
+    .search-box input::placeholder { color: var(--muted); font-weight: 400; }
+    .suggested-label { font-size: 11px; font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase; color: var(--muted); margin-bottom: 10px; font-family: var(--font-mono); }
+    .recipient-list { display: flex; flex-direction: column; gap: 8px; margin-bottom: 24px; }
+    .recipient-item { display: flex; align-items: center; gap: 12px; background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 12px 14px; cursor: pointer; transition: all 0.15s; }
+    .recipient-item:hover, .recipient-item.selected { border-color: var(--accent); background: rgba(124,92,252,0.08); }
+    .recipient-avatar { width: 40px; height: 40px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 16px; flex-shrink: 0; }
+    .recipient-info { flex: 1; }
+    .recipient-name { font-size: 14px; font-weight: 700; margin-bottom: 2px; }
+    .recipient-handle { font-size: 11px; color: var(--muted); font-family: var(--font-mono); }
+    .amount-section { margin-bottom: 24px; }
+    .amount-label { font-size: 11px; font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase; color: var(--muted); margin-bottom: 12px; font-family: var(--font-mono); display: block; }
+    .amount-presets { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-bottom: 12px; }
+    .preset-btn { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 12px 6px; color: var(--text); font-family: var(--font-head); font-size: 13px; font-weight: 700; cursor: pointer; transition: all 0.15s; text-align: center; }
+    .preset-btn:hover, .preset-btn.active { background: var(--accent); border-color: var(--accent); color: #fff; box-shadow: 0 4px 20px rgba(124,92,252,0.4); }
+    .custom-amount { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 14px 16px; display: flex; align-items: center; gap: 8px; transition: border-color 0.2s; }
+    .custom-amount:focus-within { border-color: var(--accent); }
+    .custom-amount .currency { color: var(--muted); font-family: var(--font-mono); font-size: 14px; font-weight: 500; }
+    .custom-amount input { background: none; border: none; outline: none; color: var(--text); font-family: var(--font-head); font-size: 16px; font-weight: 700; flex: 1; width: 100%; }
+    .custom-amount input::placeholder { color: var(--muted); font-weight: 400; }
+    .token-toggle { display: flex; background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 4px; margin-bottom: 24px; gap: 4px; }
+    .token-btn { flex: 1; padding: 10px; border-radius: 10px; border: none; background: none; color: var(--muted); font-family: var(--font-head); font-size: 13px; font-weight: 700; cursor: pointer; transition: all 0.2s; }
+    .token-btn.active { background: var(--surface2); color: var(--text); box-shadow: 0 2px 8px rgba(0,0,0,0.3); }
+    .message-section { margin-bottom: 28px; }
+    .msg-input { background: var(--surface); border: 1px solid var(--border); border-radius: 16px; padding: 14px 16px; width: 100%; resize: none; color: var(--text); font-family: var(--font-head); font-size: 14px; font-weight: 500; outline: none; transition: border-color 0.2s; min-height: 80px; }
+    .msg-input:focus { border-color: var(--accent); }
+    .msg-input::placeholder { color: var(--muted); }
+    .btn-primary { width: 100%; padding: 18px; background: linear-gradient(135deg, var(--accent), var(--accent2)); border: none; border-radius: 18px; color: #fff; font-family: var(--font-head); font-size: 16px; font-weight: 800; cursor: pointer; letter-spacing: -0.3px; transition: all 0.2s; box-shadow: 0 8px 32px rgba(124,92,252,0.35); position: relative; overflow: hidden; }
+    .btn-primary:active { transform: scale(0.98); }
+    .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+    .success-screen { display: flex; flex-direction: column; align-items: center; justify-content: center; flex: 1; text-align: center; padding: 40px 24px; }
+    .success-ring { width: 100px; height: 100px; border-radius: 50%; background: linear-gradient(135deg, var(--accent), var(--green)); display: flex; align-items: center; justify-content: center; font-size: 42px; margin-bottom: 28px; box-shadow: 0 20px 60px rgba(34,211,165,0.4); animation: popIn 0.5s cubic-bezier(0.34,1.56,0.64,1) both; }
+    @keyframes popIn { from { transform: scale(0); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+    .success-title { font-size: 28px; font-weight: 800; letter-spacing: -1px; margin-bottom: 10px; }
+    .success-sub { color: var(--muted); font-family: var(--font-mono); font-size: 13px; line-height: 1.6; margin-bottom: 32px; }
+    .tx-card { background: var(--surface); border: 1px solid var(--border); border-radius: 20px; padding: 20px; width: 100%; margin-bottom: 28px; text-align: left; }
+    .tx-row { display: flex; justify-content: space-between; align-items: center; padding: 8px 0; border-bottom: 1px solid var(--border); }
+    .tx-row:last-child { border-bottom: none; }
+    .tx-key { font-size: 12px; color: var(--muted); font-family: var(--font-mono); }
+    .tx-val { font-size: 13px; font-weight: 700; font-family: var(--font-mono); }
+    .tx-val.green { color: var(--green); }
+    .share-card { background: linear-gradient(135deg, rgba(124,92,252,0.2), rgba(252,92,125,0.2)); border: 1px solid rgba(124,92,252,0.3); border-radius: 20px; padding: 20px; width: 100%; margin-bottom: 20px; cursor: pointer; transition: all 0.2s; }
+    .share-card:hover { border-color: var(--accent); }
+    .share-card-title { font-size: 14px; font-weight: 800; margin-bottom: 6px; }
+    .share-card-sub { font-size: 12px; color: var(--muted); font-family: var(--font-mono); }
+    .qr-section { display: flex; flex-direction: column; align-items: center; gap: 20px; margin-bottom: 28px; }
+    .qr-frame { width: 200px; height: 200px; background: #fff; border-radius: 24px; display: flex; align-items: center; justify-content: center; padding: 16px; box-shadow: 0 20px 60px rgba(0,0,0,0.4); }
+    .link-box { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 14px 16px; display: flex; align-items: center; gap: 10px; width: 100%; cursor: pointer; transition: border-color 0.2s; }
+    .link-box:hover { border-color: var(--accent); }
+    .link-url { flex: 1; font-family: var(--font-mono); font-size: 12px; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .copied-toast { position: fixed; bottom: 32px; left: 50%; transform: translateX(-50%) translateY(20px); background: var(--green); color: #0a0a0f; font-family: var(--font-head); font-size: 13px; font-weight: 800; padding: 10px 20px; border-radius: 99px; opacity: 0; transition: all 0.3s cubic-bezier(0.22,1,0.36,1); pointer-events: none; z-index: 100; }
+    .copied-toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+    .tips-incoming { display: flex; flex-direction: column; gap: 8px; }
+    .spinner { width: 20px; height: 20px; border: 2px solid rgba(255,255,255,0.3); border-top-color: #fff; border-radius: 50%; animation: spin 0.7s linear infinite; display: inline-block; vertical-align: middle; margin-right: 8px; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .nav-tabs { display: flex; background: var(--surface); border: 1px solid var(--border); border-radius: 16px; padding: 4px; gap: 4px; margin-bottom: 24px; }
+    .nav-tab { flex: 1; padding: 10px; border-radius: 12px; border: none; background: none; color: var(--muted); font-family: var(--font-head); font-size: 13px; font-weight: 700; cursor: pointer; transition: all 0.2s; }
+    .nav-tab.active { background: var(--accent); color: #fff; box-shadow: 0 4px 16px rgba(124,92,252,0.35); }
+  </style>
+</head>
+<body>
+<div class="bg-blob blob1"></div>
+<div class="bg-blob blob2"></div>
+<div class="bg-blob blob3"></div>
+<div class="top-bar">
+  <div class="logo">tip<span>jar</span></div>
+  <div class="avatar-chip" id="userChip">
+    <div class="avatar-placeholder" id="avatarInitial">?</div>
+    <span id="userName">Connect</span>
+  </div>
+</div>
+<div class="app">
+  <div class="screen active" id="screen-home">
+    <div class="hero">
+      <div class="hero-icon">💸</div>
+      <h1>Send tips.<br><em>Onchain.</em> Instantly.</h1>
+      <p>Tip your favorite Farcaster creators<br>with ETH or USDC on Base.</p>
+    </div>
+    <div class="stats-row">
+      <div class="stat-card"><span class="val" id="stat-sent">0</span><span class="lbl">Tips Sent</span></div>
+      <div class="stat-card"><span class="val" id="stat-received">0</span><span class="lbl">Received</span></div>
+      <div class="stat-card"><span class="val" id="stat-total">$0</span><span class="lbl">Total Vol.</span></div>
+    </div>
+    <div class="action-grid">
+      <div class="action-card send" onclick="showScreen('screen-send')"><span class="icon">🚀</span><span class="card-title">Send Tip</span><span class="card-desc">Tip any Farcaster user ETH or USDC</span></div>
+      <div class="action-card receive" onclick="showScreen('screen-receive')"><span class="icon">🎁</span><span class="card-title">My Jar</span><span class="card-desc">Your link & incoming tips</span></div>
+    </div>
+    <div class="section-label">Recent Activity</div>
+    <div class="activity-list">
+      <div class="activity-item"><div class="activity-avatar">🦊</div><div class="activity-info"><div class="activity-name">vitalik.eth</div><div class="activity-msg">Thanks for the support!</div></div><div class="activity-amount positive">+2 USDC</div></div>
+      <div class="activity-item"><div class="activity-avatar">🐸</div><div class="activity-info"><div class="activity-name">jessepollak</div><div class="activity-msg">Keep building on Base 🔵</div></div><div class="activity-amount negative">−0.001 ETH</div></div>
+      <div class="activity-item"><div class="activity-avatar">🌙</div><div class="activity-info"><div class="activity-name">dwr.eth</div><div class="activity-msg">Love the mini app!</div></div><div class="activity-amount positive">+5 USDC</div></div>
+    </div>
+  </div>
+  <div class="screen" id="screen-send">
+    <div class="screen-header"><div class="back-btn" onclick="showScreen('screen-home')">←</div><div class="screen-title">Send a Tip</div></div>
+    <div class="suggested-label">To</div>
+    <div class="search-box"><span class="search-icon">🔍</span><input type="text" id="recipientSearch" placeholder="Search by @username or address…" oninput="filterRecipients(this.value)" /></div>
+    <div class="suggested-label">Suggested</div>
+    <div class="recipient-list" id="recipientList">
+      <div class="recipient-item" onclick="selectRecipient(this,'vitalik.eth','@vitalik')"><div class="recipient-avatar" style="background:linear-gradient(135deg,#7c5cfc,#fc5c7d)">🦊</div><div class="recipient-info"><div class="recipient-name">vitalik.eth</div><div class="recipient-handle">@vitalik · 450k followers</div></div></div>
+      <div class="recipient-item" onclick="selectRecipient(this,'jessepollak','@jessepollak')"><div class="recipient-avatar" style="background:linear-gradient(135deg,#0052ff,#22d3a5)">🔵</div><div class="recipient-info"><div class="recipient-name">jessepollak</div><div class="recipient-handle">@jessepollak · 98k followers</div></div></div>
+      <div class="recipient-item" onclick="selectRecipient(this,'dwr.eth','@dwr')"><div class="recipient-avatar" style="background:linear-gradient(135deg,#fc5c7d,#fcb05c)">🌙</div><div class="recipient-info"><div class="recipient-name">dwr.eth</div><div class="recipient-handle">@dwr · 210k followers</div></div></div>
+      <div class="recipient-item" onclick="selectRecipient(this,'gakonst.eth','@gakonst')"><div class="recipient-avatar" style="background:linear-gradient(135deg,#22d3a5,#7c5cfc)">⚡</div><div class="recipient-info"><div class="recipient-name">gakonst.eth</div><div class="recipient-handle">@gakonst · 55k followers</div></div></div>
+    </div>
+    <div class="token-toggle">
+      <button class="token-btn active" onclick="selectToken(this,'USDC')">💵 USDC</button>
+      <button class="token-btn" onclick="selectToken(this,'ETH')">⟠ ETH</button>
+    </div>
+    <div class="amount-section">
+      <span class="amount-label">Amount</span>
+      <div class="amount-presets">
+        <button class="preset-btn" onclick="selectPreset(this,1)">1</button>
+        <button class="preset-btn active" onclick="selectPreset(this,5)">5</button>
+        <button class="preset-btn" onclick="selectPreset(this,10)">10</button>
+        <button class="preset-btn" onclick="selectPreset(this,25)">25</button>
+      </div>
+      <div class="custom-amount"><span class="currency" id="currencySymbol">USDC</span><input type="number" id="customAmount" placeholder="Custom amount…" oninput="onCustomAmount()" /></div>
+    </div>
+    <div class="message-section"><span class="amount-label">Message (optional)</span><textarea class="msg-input" id="tipMessage" placeholder="Say something nice… 💬" maxlength="140"></textarea></div>
+    <button class="btn-primary" id="sendBtn" onclick="sendTip()">Send 5 USDC 🚀</button>
+  </div>
+  <div class="screen" id="screen-confirm">
+    <div class="screen-header"><div class="back-btn" onclick="showScreen('screen-send')">←</div><div class="screen-title">Confirm Tip</div></div>
+    <div style="flex:1;display:flex;flex-direction:column;justify-content:center;align-items:center;gap:24px;">
+      <div style="font-size:64px;animation:float 2s ease-in-out infinite;">💸</div>
+      <div style="text-align:center;">
+        <div style="font-size:36px;font-weight:800;letter-spacing:-1.5px;" id="confirmAmount">5 USDC</div>
+        <div style="color:var(--muted);font-family:var(--font-mono);font-size:13px;margin-top:6px;">to <span id="confirmRecipient" style="color:var(--text)">@vitalik</span></div>
+      </div>
+      <div class="tx-card" style="width:100%">
+        <div class="tx-row"><span class="tx-key">Network</span><span class="tx-val">Base Mainnet 🔵</span></div>
+        <div class="tx-row"><span class="tx-key">Gas fee</span><span class="tx-val green">~$0.001</span></div>
+        <div class="tx-row"><span class="tx-key">Token</span><span class="tx-val" id="confirmToken">USDC</span></div>
+        <div class="tx-row"><span class="tx-key">Message</span><span class="tx-val" id="confirmMessage" style="color:var(--muted);max-width:180px;text-align:right;font-size:11px;">—</span></div>
+      </div>
+      <button class="btn-primary" id="confirmBtn" onclick="confirmSend()" style="width:100%">Confirm & Send 🚀</button>
+      <button onclick="showScreen('screen-send')" style="background:none;border:none;color:var(--muted);font-family:var(--font-head);font-size:14px;font-weight:600;cursor:pointer;">Cancel</button>
+    </div>
+  </div>
+  <div class="screen" id="screen-success">
+    <div class="success-screen">
+      <div class="success-ring">✓</div>
+      <div class="success-title">Tip Sent! 🎉</div>
+      <div class="success-sub">Your tip landed onchain on Base.<br>The creator will see it in their jar.</div>
+      <div class="tx-card">
+        <div class="tx-row"><span class="tx-key">Amount</span><span class="tx-val green" id="successAmount">5 USDC</span></div>
+        <div class="tx-row"><span class="tx-key">Recipient</span><span class="tx-val" id="successRecipient">@vitalik</span></div>
+        <div class="tx-row"><span class="tx-key">Tx Hash</span><span class="tx-val" style="color:var(--accent);font-size:11px;" id="successTxHash">0x4f2a…c831</span></div>
+        <div class="tx-row"><span class="tx-key">Network</span><span class="tx-val">Base 🔵</span></div>
+      </div>
+      <div class="share-card" onclick="shareOnFarcaster()"><div class="share-card-title">🪄 Share on Farcaster</div><div class="share-card-sub">Post your tip as a cast — spread the love and go viral</div></div>
+      <button class="btn-primary" onclick="showScreen('screen-home')" style="width:100%">Back to Home</button>
+    </div>
+  </div>
+  <div class="screen" id="screen-receive">
+    <div class="screen-header"><div class="back-btn" onclick="showScreen('screen-home')">←</div><div class="screen-title">My Tip Jar</div></div>
+    <div class="nav-tabs">
+      <button class="nav-tab active" onclick="switchTab(this,'tab-link')">My Link</button>
+      <button class="nav-tab" onclick="switchTab(this,'tab-history')">History</button>
+    </div>
+    <div id="tab-link">
+      <div class="qr-section">
+        <div class="qr-frame"><canvas id="qrCanvas" width="168" height="168"></canvas></div>
+        <div style="text-align:center;"><div style="font-size:16px;font-weight:800;margin-bottom:4px;" id="myHandle">@yourname</div><div style="font-size:12px;color:var(--muted);font-family:var(--font-mono);">Share to receive tips</div></div>
+      </div>
+      <div class="link-box" onclick="copyLink()"><span style="font-size:16px">🔗</span><span class="link-url" id="myLink">tipjar-chi-snowy.vercel.app/tip/yourname</span><span style="font-size:12px;font-weight:700;color:var(--accent)">Copy</span></div>
+      <div style="height:16px;"></div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:24px;">
+        <div class="stat-card"><span class="val" id="jar-total">$0.00</span><span class="lbl">Total Earned</span></div>
+        <div class="stat-card"><span class="val" id="jar-count">0</span><span class="lbl">Tips Received</span></div>
+      </div>
+      <button class="btn-primary" onclick="shareOnFarcaster()">📣 Share My Jar on Farcaster</button>
+    </div>
+    <div id="tab-history" style="display:none;">
+      <div class="section-label">Incoming Tips</div>
+      <div class="tips-incoming">
+        <div class="activity-item"><div class="activity-avatar">🎩</div><div class="activity-info"><div class="activity-name">notdevin.eth</div><div class="activity-msg">Great content, keep it up!</div></div><div class="activity-amount positive">+10 USDC</div></div>
+        <div class="activity-item"><div class="activity-avatar">🚀</div><div class="activity-info"><div class="activity-name">horsefacts.eth</div><div class="activity-msg">Love your casts 🔥</div></div><div class="activity-amount positive">+0.005 ETH</div></div>
+        <div class="activity-item"><div class="activity-avatar">🌊</div><div class="activity-info"><div class="activity-name">betashop.eth</div><div class="activity-msg">—</div></div><div class="activity-amount positive">+2 USDC</div></div>
+      </div>
+    </div>
+  </div>
+</div>
+<div class="copied-toast" id="toast">✓ Copied!</div>
+<script>
+const state={user:{fid:null,username:'yourname',displayName:'You'},selectedRecipient:{name:'vitalik.eth',handle:'@vitalik'},selectedToken:'USDC',selectedAmount:5,tipsSent:3,tipsReceived:3,totalVolume:14.2};
+async function initFarcaster(){try{const sdk=window.sdk||(window.farcaster&&window.farcaster.sdk);if(!sdk)return;const context=await sdk.context;if(context&&context.user){const u=context.user;state.user.fid=u.fid;state.user.username=u.username||'yourname';state.user.displayName=u.displayName||u.username||'You';document.getElementById('userName').textContent='@'+state.user.username;document.getElementById('avatarInitial').textContent=state.user.displayName[0].toUpperCase();document.getElementById('myHandle').textContent='@'+state.user.username;document.getElementById('myLink').textContent='tipjar-chi-snowy.vercel.app/tip/'+state.user.username;if(u.pfpUrl){const img=document.createElement('img');img.src=u.pfpUrl;img.alt=state.user.username;document.getElementById('avatarInitial').replaceWith(img);}}if(sdk.actions&&sdk.actions.ready)await sdk.actions.ready();}catch(e){console.log('Outside Warpcast:',e.message);}}
+function showScreen(id){document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));document.getElementById(id).classList.add('active');window.scrollTo(0,0);}
+function selectRecipient(el,name,handle){document.querySelectorAll('.recipient-item').forEach(i=>i.classList.remove('selected'));el.classList.add('selected');state.selectedRecipient={name,handle};updateSendBtn();}
+const allRecipients=[{name:'vitalik.eth',handle:'@vitalik',followers:'450k',emoji:'🦊',bg:'linear-gradient(135deg,#7c5cfc,#fc5c7d)'},{name:'jessepollak',handle:'@jessepollak',followers:'98k',emoji:'🔵',bg:'linear-gradient(135deg,#0052ff,#22d3a5)'},{name:'dwr.eth',handle:'@dwr',followers:'210k',emoji:'🌙',bg:'linear-gradient(135deg,#fc5c7d,#fcb05c)'},{name:'gakonst.eth',handle:'@gakonst',followers:'55k',emoji:'⚡',bg:'linear-gradient(135deg,#22d3a5,#7c5cfc)'}];
+function filterRecipients(query){const list=document.getElementById('recipientList');const q=query.toLowerCase();const filtered=q?allRecipients.filter(r=>r.name.includes(q)||r.handle.includes(q)):allRecipients;list.innerHTML=filtered.map(r=>`<div class="recipient-item" onclick="selectRecipient(this,'${r.name}','${r.handle}')"><div class="recipient-avatar" style="background:${r.bg}">${r.emoji}</div><div class="recipient-info"><div class="recipient-name">${r.name}</div><div class="recipient-handle">${r.handle} · ${r.followers} followers</div></div></div>`).join('');}
+function selectToken(btn,token){document.querySelectorAll('.token-btn').forEach(b=>b.classList.remove('active'));btn.classList.add('active');state.selectedToken=token;document.getElementById('currencySymbol').textContent=token;updateSendBtn();}
+function selectPreset(btn,amount){document.querySelectorAll('.preset-btn').forEach(b=>b.classList.remove('active'));btn.classList.add('active');state.selectedAmount=amount;document.getElementById('customAmount').value='';updateSendBtn();}
+function onCustomAmount(){const val=parseFloat(document.getElementById('customAmount').value);if(!isNaN(val)&&val>0){document.querySelectorAll('.preset-btn').forEach(b=>b.classList.remove('active'));state.selectedAmount=val;updateSendBtn();}}
+function updateSendBtn(){document.getElementById('sendBtn').textContent=`Send ${state.selectedAmount} ${state.selectedToken} 🚀`;}
+function sendTip(){const msg=document.getElementById('tipMessage').value;document.getElementById('confirmAmount').textContent=`${state.selectedAmount} ${state.selectedToken}`;document.getElementById('confirmRecipient').textContent=state.selectedRecipient.handle;document.getElementById('confirmToken').textContent=state.selectedToken;document.getElementById('confirmMessage').textContent=msg||'—';showScreen('screen-confirm');}
+async function confirmSend(){const btn=document.getElementById('confirmBtn');btn.disabled=true;btn.innerHTML='<span class="spinner"></span>Sending…';await sleep(2200);state.tipsSent++;state.totalVolume+=state.selectedAmount;document.getElementById('stat-sent').textContent=state.tipsSent;document.getElementById('stat-total').textContent='$'+state.totalVolume.toFixed(0);document.getElementById('successAmount').textContent=`${state.selectedAmount} ${state.selectedToken}`;document.getElementById('successRecipient').textContent=state.selectedRecipient.handle;document.getElementById('successTxHash').textContent='0x'+randomHex(4)+'…'+randomHex(4);btn.disabled=false;btn.textContent='Confirm & Send 🚀';showScreen('screen-success');}
+async function shareOnFarcaster(){const text=`Just tipped ${state.selectedAmount} ${state.selectedToken} to ${state.selectedRecipient.handle} on Base 💸\n\nSend tips onchain with TipJar 👇`;try{const sdk=window.sdk;if(sdk&&sdk.actions&&sdk.actions.composeCast){await sdk.actions.composeCast({text,embeds:['https://tipjar-chi-snowy.vercel.app']});}else{window.open(`https://warpcast.com/~/compose?text=${encodeURIComponent(text)}`,'_blank');}}catch(e){showToast('Opened in Warpcast!');}}
+function switchTab(btn,tabId){document.querySelectorAll('.nav-tab').forEach(b=>b.classList.remove('active'));btn.classList.add('active');document.getElementById('tab-link').style.display=tabId==='tab-link'?'block':'none';document.getElementById('tab-history').style.display=tabId==='tab-history'?'block':'none';}
+function copyLink(){const link='https://tipjar-chi-snowy.vercel.app/tip/'+state.user.username;navigator.clipboard.writeText(link).then(()=>showToast('✓ Link Copied!')).catch(()=>showToast('✓ Link Copied!'));}
+function drawQR(){const canvas=document.getElementById('qrCanvas');if(!canvas)return;const ctx=canvas.getContext('2d');const size=168,cells=21,cell=Math.floor(size/cells);ctx.fillStyle='#ffffff';ctx.fillRect(0,0,size,size);function bit(r,c){if(r<7&&c<7)return finderBit(r,c);if(r<7&&c>=cells-7)return finderBit(r,c-(cells-7));if(r>=cells-7&&c<7)return finderBit(r-(cells-7),c);return((r*31+c*17+r*c)%7)<4?1:0;}function finderBit(r,c){if(r===0||r===6||c===0||c===6)return 1;if(r>=2&&r<=4&&c>=2&&c<=4)return 1;return 0;}ctx.fillStyle='#0a0a0f';for(let r=0;r<cells;r++)for(let c=0;c<cells;c++)if(bit(r,c)){ctx.beginPath();ctx.roundRect(c*cell+1,r*cell+1,cell-2,cell-2,2);ctx.fill();}}
+function showToast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2200);}
+function sleep(ms){return new Promise(r=>setTimeout(r,ms));}
+function randomHex(n){return[...Array(n)].map(()=>Math.floor(Math.random()*16).toString(16)).join('');}
+window.addEventListener('DOMContentLoaded',()=>{initFarcaster();drawQR();document.getElementById('stat-sent').textContent=state.tipsSent;document.getElementById('stat-received').textContent=state.tipsReceived;document.getElementById('stat-total').textContent='$'+state.totalVolume.toFixed(0);document.getElementById('jar-total').textContent='$12.00';document.getElementById('jar-count').textContent='3';});
+</script>
+</body>
+</html>
