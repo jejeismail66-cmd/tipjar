@@ -363,6 +363,14 @@ const state = {
   tipsSent: 3, tipsReceived: 3, totalVolume: 14
 };
 
+// Call ready() IMMEDIATELY so Warpcast does not timeout and show black screen
+(async () => {
+  try {
+    const sdk = window.sdk || (window.farcaster && window.farcaster.sdk);
+    if (sdk && sdk.actions && sdk.actions.ready) await sdk.actions.ready();
+  } catch(e) {}
+})();
+
 async function initFarcaster() {
   try {
     const sdk = window.sdk || (window.farcaster && window.farcaster.sdk);
@@ -376,7 +384,6 @@ async function initFarcaster() {
       document.getElementById('myHandle').textContent = '@' + state.username;
       document.getElementById('myLink').textContent = 'tipjar-chi-snowy.vercel.app/tip/' + state.username;
     }
-    if (sdk.actions && sdk.actions.ready) await sdk.actions.ready();
   } catch(e) {}
 }
 
