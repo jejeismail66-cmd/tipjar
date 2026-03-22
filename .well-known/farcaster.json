@@ -7,11 +7,11 @@
   "frame": {
     "version": "1",
     "name": "TipJar",
-    "iconUrl": "https://placehold.co/200x200/7c5cfc/ffffff?text=TipJar",
+    "iconUrl": "https://placehold.co/200x200/7c5cfc/ffffff?text=TJ",
     "homeUrl": "https://tipjar-chi-snowy.vercel.app",
-    "imageUrl": "https://placehold.co/1200x630/7c5cfc/ffffff?text=TipJar+%F0%9F%92%B8",
-    "buttonTitle": "Open TipJar 💸",
-    "splashImageUrl": "https://placehold.co/200x200/7c5cfc/ffffff?text=TipJar",
+    "imageUrl": "https://placehold.co/1200x630/7c5cfc/ffffff?text=TipJar",
+    "buttonTitle": "Open TipJar",
+    "splashImageUrl": "https://placehold.co/200x200/0a0a0f/7c5cfc?text=TipJar",
     "splashBackgroundColor": "#0a0a0f"
   }
 }
