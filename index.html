@@ -20,8 +20,6 @@
   <meta name="fc:frame:button:1:action" content="launch_frame" />
   <meta name="fc:frame:button:1:target" content="https://tipjar-chi-snowy.vercel.app" />
 
-  <script src="https://cdn.jsdelivr.net/npm/@farcaster/frame-sdk@latest/dist/index.umd.js"></script>
-
   <style>
     :root {
       --bg: #0a0a0f; --surface: #13131a; --surface2: #1c1c27;
@@ -363,11 +361,12 @@ const state = {
   tipsSent: 3, tipsReceived: 3, totalVolume: 14
 };
 
-// Call ready() IMMEDIATELY so Warpcast does not timeout and show black screen
+// Signal ready to Warpcast immediately via postMessage - no SDK needed
 (async () => {
   try {
-    const sdk = window.sdk || (window.farcaster && window.farcaster.sdk);
-    if (sdk && sdk.actions && sdk.actions.ready) await sdk.actions.ready();
+    if (window.parent !== window) {
+      window.parent.postMessage({ type: 'frameReady' }, '*');
+    }
   } catch(e) {}
 })();
 
