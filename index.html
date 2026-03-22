@@ -4,10 +4,25 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0" />
   <title>TipJar - Send love onchain</title>
-  <meta name="fc:frame" content='{"version":"next","imageUrl":"https://tipjar-chi-snowy.vercel.app/og.png","button":{"title":"Open TipJar","action":{"type":"launch_frame","url":"https://tipjar-chi-snowy.vercel.app"}}}' />
+
+  <!-- Open Graph (required for Warpcast card preview) -->
+  <meta property="og:title" content="TipJar - Tip creators on Base" />
+  <meta property="og:description" content="Send USDC or ETH tips to your favorite Farcaster creators. Onchain on Base." />
+  <meta property="og:image" content="https://placehold.co/1200x630/7c5cfc/ffffff?text=TipJar+%F0%9F%92%B8" />
+  <meta property="og:url" content="https://tipjar-chi-snowy.vercel.app" />
+
+  <!-- Farcaster Frame meta tags (individual format - required for Warpcast) -->
+  <meta name="fc:frame" content="vNext" />
+  <meta name="fc:frame:image" content="https://placehold.co/1200x630/7c5cfc/ffffff?text=TipJar+%F0%9F%92%B8" />
+  <meta name="fc:frame:image:aspect_ratio" content="1.91:1" />
+  <meta name="fc:frame:button:1" content="Open TipJar 💸" />
+  <meta name="fc:frame:button:1:action" content="link" />
+  <meta name="fc:frame:button:1:target" content="https://tipjar-chi-snowy.vercel.app" />
+
   <script src="https://cdn.jsdelivr.net/npm/@farcaster/frame-sdk@latest/dist/index.umd.js"></script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+
   <style>
     :root {
       --bg: #0a0a0f; --surface: #13131a; --surface2: #1c1c27;
@@ -34,10 +49,10 @@
     .avatar-placeholder { width: 26px; height: 26px; border-radius: 50%; background: linear-gradient(135deg, var(--accent), var(--accent2)); display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 700; }
 
     /* WALLET MODAL */
-    .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.75); backdrop-filter: blur(8px); z-index: 300; display: none; align-items: flex-end; justify-content: center; padding-bottom: env(safe-area-inset-bottom); }
+    .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.75); backdrop-filter: blur(8px); z-index: 300; display: none; align-items: flex-end; justify-content: center; }
     .modal-overlay.open { display: flex; animation: fadeIn 0.2s ease; }
     @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
-    .wallet-modal { background: var(--surface); border: 1px solid var(--border); border-radius: 28px 28px 0 0; width: 100%; max-width: 420px; padding: 12px 24px 40px; animation: slideUp 0.35s cubic-bezier(0.22,1,0.36,1); }
+    .wallet-modal { background: var(--surface); border: 1px solid var(--border); border-radius: 28px 28px 0 0; width: 100%; max-width: 420px; padding: 12px 24px 48px; animation: slideUp 0.35s cubic-bezier(0.22,1,0.36,1); }
     @keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
     .modal-handle { width: 40px; height: 4px; background: rgba(255,255,255,0.15); border-radius: 99px; margin: 0 auto 24px; }
     .modal-title { font-size: 21px; font-weight: 800; letter-spacing: -0.5px; margin-bottom: 6px; }
@@ -163,8 +178,6 @@
 <div class="modal-overlay" id="walletModal" onclick="handleOverlayClick(event)">
   <div class="wallet-modal">
     <div class="modal-handle"></div>
-
-    <!-- Not connected -->
     <div id="stateDisconnected">
       <div class="modal-title">Connect Wallet</div>
       <div class="modal-sub">Paste your wallet address or ENS name to get started on Base.</div>
@@ -175,16 +188,11 @@
       <button class="btn-wallet-connect" onclick="connectWallet()">Connect Wallet</button>
       <button class="btn-wallet-cancel" onclick="closeWalletModal()">Cancel</button>
     </div>
-
-    <!-- Connected -->
     <div id="stateConnected" style="display:none">
       <div class="modal-title">Wallet Connected &#x1F7E2;</div>
       <div class="modal-sub">You are connected on Base network.</div>
       <div class="connected-badge show">
-        <div class="badge-row">
-          <div class="dot-green"></div>
-          <span class="badge-label">CONNECTED &bull; BASE</span>
-        </div>
+        <div class="badge-row"><div class="dot-green"></div><span class="badge-label">CONNECTED &bull; BASE</span></div>
         <div class="badge-addr" id="connectedAddrText">0x...</div>
       </div>
       <button class="btn-wallet-disconnect" onclick="disconnectWallet()">Disconnect Wallet</button>
@@ -249,8 +257,8 @@
       <div class="recipient-item" onclick="selectRecipient(this,'gakonst.eth','@gakonst')"><div class="recipient-avatar" style="background:linear-gradient(135deg,#22d3a5,#7c5cfc)">&#x26A1;</div><div class="recipient-info"><div class="recipient-name">gakonst.eth</div><div class="recipient-handle">@gakonst &middot; 55k followers</div></div></div>
     </div>
     <div class="token-toggle">
-      <button class="token-btn active" onclick="selectToken(this,'USDC')">USDC</button>
-      <button class="token-btn" onclick="selectToken(this,'ETH')">ETH</button>
+      <button class="token-btn active" onclick="selectToken(this,'USDC')">&#x1F4B5; USDC</button>
+      <button class="token-btn" onclick="selectToken(this,'ETH')">&#x27E0; ETH</button>
     </div>
     <div class="amount-section">
       <span class="amount-label">Amount</span>
@@ -276,7 +284,7 @@
         <div style="color:var(--muted);font-family:var(--font-mono);font-size:13px;margin-top:6px;">to <span id="confirmRecipient" style="color:var(--text)">@vitalik</span></div>
       </div>
       <div class="tx-card" style="width:100%">
-        <div class="tx-row"><span class="tx-key">Network</span><span class="tx-val">Base Mainnet</span></div>
+        <div class="tx-row"><span class="tx-key">Network</span><span class="tx-val">Base Mainnet &#x1F535;</span></div>
         <div class="tx-row"><span class="tx-key">Gas fee</span><span class="tx-val green">~$0.001</span></div>
         <div class="tx-row"><span class="tx-key">Token</span><span class="tx-val" id="confirmToken">USDC</span></div>
         <div class="tx-row"><span class="tx-key">Message</span><span class="tx-val" id="confirmMessage" style="color:var(--muted);font-size:11px;">-</span></div>
@@ -296,10 +304,10 @@
         <div class="tx-row"><span class="tx-key">Amount</span><span class="tx-val green" id="successAmount">5 USDC</span></div>
         <div class="tx-row"><span class="tx-key">Recipient</span><span class="tx-val" id="successRecipient">@vitalik</span></div>
         <div class="tx-row"><span class="tx-key">Tx Hash</span><span class="tx-val" style="color:var(--accent);font-size:11px;" id="successTxHash">0x4f2a...c831</span></div>
-        <div class="tx-row"><span class="tx-key">Network</span><span class="tx-val">Base</span></div>
+        <div class="tx-row"><span class="tx-key">Network</span><span class="tx-val">Base &#x1F535;</span></div>
       </div>
       <div class="share-card" onclick="shareOnFarcaster()">
-        <div class="share-card-title">Share on Farcaster &#x1FA84;</div>
+        <div class="share-card-title">&#x1FA84; Share on Farcaster</div>
         <div class="share-card-sub">Post your tip as a cast and go viral</div>
       </div>
       <button class="btn-primary" onclick="showScreen('screen-home')" style="width:100%">Back to Home</button>
@@ -324,7 +332,7 @@
         <div class="stat-card"><span class="val" id="jar-total">$12.00</span><span class="lbl">Total Earned</span></div>
         <div class="stat-card"><span class="val" id="jar-count">3</span><span class="lbl">Tips Received</span></div>
       </div>
-      <button class="btn-primary" onclick="shareOnFarcaster()">Share My Jar on Farcaster</button>
+      <button class="btn-primary" onclick="shareOnFarcaster()">&#x1F4E3; Share My Jar on Farcaster</button>
     </div>
     <div id="tab-history" style="display:none;">
       <div class="section-label">Incoming Tips</div>
@@ -336,19 +344,18 @@
     </div>
   </div>
 
-</div><!-- /.app -->
+</div>
 
 <div class="copied-toast" id="toast">Copied!</div>
 
 <script>
 const state = {
-  address: null, username: 'yourname', displayName: 'You',
+  address: null, username: 'yourname',
   selectedRecipient: { name: 'vitalik.eth', handle: '@vitalik' },
   selectedToken: 'USDC', selectedAmount: 5,
   tipsSent: 3, tipsReceived: 3, totalVolume: 14
 };
 
-// Farcaster SDK - auto connect if inside Warpcast
 async function initFarcaster() {
   try {
     const sdk = window.sdk || (window.farcaster && window.farcaster.sdk);
@@ -356,21 +363,18 @@ async function initFarcaster() {
     const ctx = await sdk.context;
     if (ctx && ctx.user) {
       const u = ctx.user;
-      state.address = u.custodyAddress || '0xFarcaster';
+      state.address = u.custodyAddress || 'farcaster';
       state.username = u.username || 'yourname';
-      state.displayName = u.displayName || u.username || 'You';
-      updateChip(state.displayName, u.pfpUrl);
+      updateChip(u.displayName || u.username, u.pfpUrl);
       document.getElementById('myHandle').textContent = '@' + state.username;
       document.getElementById('myLink').textContent = 'tipjar-chi-snowy.vercel.app/tip/' + state.username;
     }
     if (sdk.actions && sdk.actions.ready) await sdk.actions.ready();
-  } catch(e) { /* outside Warpcast, that's fine */ }
+  } catch(e) {}
 }
 
-// Modal open/close
 function openWalletModal() {
-  const modal = document.getElementById('walletModal');
-  modal.classList.add('open');
+  document.getElementById('walletModal').classList.add('open');
   if (state.address) {
     document.getElementById('stateDisconnected').style.display = 'none';
     document.getElementById('stateConnected').style.display = 'block';
@@ -381,14 +385,9 @@ function openWalletModal() {
     document.getElementById('walletInput').value = '';
   }
 }
-function closeWalletModal() {
-  document.getElementById('walletModal').classList.remove('open');
-}
-function handleOverlayClick(e) {
-  if (e.target.id === 'walletModal') closeWalletModal();
-}
+function closeWalletModal() { document.getElementById('walletModal').classList.remove('open'); }
+function handleOverlayClick(e) { if (e.target.id === 'walletModal') closeWalletModal(); }
 
-// Connect
 function connectWallet() {
   const val = document.getElementById('walletInput').value.trim();
   if (!val) { showToast('Enter a wallet address'); return; }
@@ -402,19 +401,11 @@ function connectWallet() {
   showToast('Wallet connected!');
 }
 
-// Disconnect
 function disconnectWallet() {
-  state.address = null;
-  state.username = 'yourname';
+  state.address = null; state.username = 'yourname';
   document.getElementById('userName').textContent = 'Connect';
   const el = document.getElementById('avatarEl');
-  if (el.tagName === 'IMG') {
-    const ph = document.createElement('div');
-    ph.className = 'avatar-placeholder';
-    ph.id = 'avatarEl';
-    ph.textContent = '?';
-    el.replaceWith(ph);
-  } else { el.textContent = '?'; }
+  if (el) { el.textContent = '?'; el.className = 'avatar-placeholder'; }
   document.getElementById('myHandle').textContent = '@yourname';
   document.getElementById('myLink').textContent = 'tipjar-chi-snowy.vercel.app/tip/yourname';
   closeWalletModal();
@@ -424,54 +415,74 @@ function disconnectWallet() {
 function updateChip(name, pfpUrl) {
   document.getElementById('userName').textContent = name;
   const el = document.getElementById('avatarEl');
-  if (pfpUrl) {
-    const img = document.createElement('img');
-    img.src = pfpUrl; img.alt = name;
+  if (pfpUrl && el) {
+    const img = document.createElement('img'); img.src = pfpUrl; img.alt = name; img.id = 'avatarEl';
     el.replaceWith(img);
-    img.id = 'avatarEl';
   } else if (el) { el.textContent = name[0].toUpperCase(); }
 }
 
 function showScreen(id) { document.querySelectorAll('.screen').forEach(s => s.classList.remove('active')); document.getElementById(id).classList.add('active'); window.scrollTo(0,0); }
 function selectRecipient(el, name, handle) { document.querySelectorAll('.recipient-item').forEach(i => i.classList.remove('selected')); el.classList.add('selected'); state.selectedRecipient = {name, handle}; updateSendBtn(); }
-const allR = [{name:'vitalik.eth',handle:'@vitalik',followers:'450k',emoji:'&#x1F98A;',bg:'linear-gradient(135deg,#7c5cfc,#fc5c7d)'},{name:'jessepollak',handle:'@jessepollak',followers:'98k',emoji:'&#x1F535;',bg:'linear-gradient(135deg,#0052ff,#22d3a5)'},{name:'dwr.eth',handle:'@dwr',followers:'210k',emoji:'&#x1F319;',bg:'linear-gradient(135deg,#fc5c7d,#fcb05c)'},{name:'gakonst.eth',handle:'@gakonst',followers:'55k',emoji:'&#x26A1;',bg:'linear-gradient(135deg,#22d3a5,#7c5cfc)'}];
-function filterRecipients(q) { const list = document.getElementById('recipientList'); const f = q ? allR.filter(r=>r.name.includes(q)||r.handle.includes(q)) : allR; list.innerHTML = f.map(r => '<div class="recipient-item" onclick="selectRecipient(this,\''+r.name+'\',\''+r.handle+'\')"><div class="recipient-avatar" style="background:'+r.bg+'">'+r.emoji+'<\/div><div class="recipient-info"><div class="recipient-name">'+r.name+'<\/div><div class="recipient-handle">'+r.handle+' &middot; '+r.followers+' followers<\/div><\/div><\/div>').join(''); }
-function selectToken(btn,token) { document.querySelectorAll('.token-btn').forEach(b=>b.classList.remove('active')); btn.classList.add('active'); state.selectedToken=token; document.getElementById('currencySymbol').textContent=token; updateSendBtn(); }
-function selectPreset(btn,amount) { document.querySelectorAll('.preset-btn').forEach(b=>b.classList.remove('active')); btn.classList.add('active'); state.selectedAmount=amount; document.getElementById('customAmount').value=''; updateSendBtn(); }
-function onCustomAmount() { const v=parseFloat(document.getElementById('customAmount').value); if(!isNaN(v)&&v>0){document.querySelectorAll('.preset-btn').forEach(b=>b.classList.remove('active'));state.selectedAmount=v;updateSendBtn();} }
-function updateSendBtn() { document.getElementById('sendBtn').textContent = 'Send '+state.selectedAmount+' '+state.selectedToken+' \u1F680'; }
+const allR = [
+  {name:'vitalik.eth',handle:'@vitalik',followers:'450k',emoji:'&#x1F98A;',bg:'linear-gradient(135deg,#7c5cfc,#fc5c7d)'},
+  {name:'jessepollak',handle:'@jessepollak',followers:'98k',emoji:'&#x1F535;',bg:'linear-gradient(135deg,#0052ff,#22d3a5)'},
+  {name:'dwr.eth',handle:'@dwr',followers:'210k',emoji:'&#x1F319;',bg:'linear-gradient(135deg,#fc5c7d,#fcb05c)'},
+  {name:'gakonst.eth',handle:'@gakonst',followers:'55k',emoji:'&#x26A1;',bg:'linear-gradient(135deg,#22d3a5,#7c5cfc)'}
+];
+function filterRecipients(q) {
+  const f = q ? allR.filter(r => r.name.includes(q) || r.handle.includes(q)) : allR;
+  document.getElementById('recipientList').innerHTML = f.map(r =>
+    '<div class="recipient-item" onclick="selectRecipient(this,\''+r.name+'\',\''+r.handle+'\')"><div class="recipient-avatar" style="background:'+r.bg+'">'+r.emoji+'</div><div class="recipient-info"><div class="recipient-name">'+r.name+'</div><div class="recipient-handle">'+r.handle+' &middot; '+r.followers+' followers</div></div></div>'
+  ).join('');
+}
+function selectToken(btn, token) { document.querySelectorAll('.token-btn').forEach(b => b.classList.remove('active')); btn.classList.add('active'); state.selectedToken = token; document.getElementById('currencySymbol').textContent = token; updateSendBtn(); }
+function selectPreset(btn, amount) { document.querySelectorAll('.preset-btn').forEach(b => b.classList.remove('active')); btn.classList.add('active'); state.selectedAmount = amount; document.getElementById('customAmount').value = ''; updateSendBtn(); }
+function onCustomAmount() { const v = parseFloat(document.getElementById('customAmount').value); if (!isNaN(v) && v > 0) { document.querySelectorAll('.preset-btn').forEach(b => b.classList.remove('active')); state.selectedAmount = v; updateSendBtn(); } }
+function updateSendBtn() { document.getElementById('sendBtn').textContent = 'Send ' + state.selectedAmount + ' ' + state.selectedToken + ' &#x1F680;'; }
+
 function sendTip() {
   if (!state.address) { openWalletModal(); showToast('Connect wallet first'); return; }
-  const msg = document.getElementById('tipMessage').value;
-  document.getElementById('confirmAmount').textContent = state.selectedAmount+' '+state.selectedToken;
+  document.getElementById('confirmAmount').textContent = state.selectedAmount + ' ' + state.selectedToken;
   document.getElementById('confirmRecipient').textContent = state.selectedRecipient.handle;
   document.getElementById('confirmToken').textContent = state.selectedToken;
-  document.getElementById('confirmMessage').textContent = msg || '-';
+  document.getElementById('confirmMessage').textContent = document.getElementById('tipMessage').value || '-';
   showScreen('screen-confirm');
 }
 async function confirmSend() {
   const btn = document.getElementById('confirmBtn');
-  btn.disabled = true; btn.innerHTML = '<span class="spinner"><\/span>Sending...';
-  await new Promise(r=>setTimeout(r,2200));
+  btn.disabled = true; btn.innerHTML = '<span class="spinner"></span>Sending...';
+  await new Promise(r => setTimeout(r, 2200));
   state.tipsSent++; state.totalVolume += state.selectedAmount;
   document.getElementById('stat-sent').textContent = state.tipsSent;
-  document.getElementById('stat-total').textContent = '$'+Math.round(state.totalVolume);
-  document.getElementById('successAmount').textContent = state.selectedAmount+' '+state.selectedToken;
+  document.getElementById('stat-total').textContent = '$' + Math.round(state.totalVolume);
+  document.getElementById('successAmount').textContent = state.selectedAmount + ' ' + state.selectedToken;
   document.getElementById('successRecipient').textContent = state.selectedRecipient.handle;
-  document.getElementById('successTxHash').textContent = '0x'+rHex(4)+'...'+rHex(4);
-  btn.disabled=false; btn.textContent='Confirm & Send';
+  document.getElementById('successTxHash').textContent = '0x' + rHex(4) + '...' + rHex(4);
+  btn.disabled = false; btn.textContent = 'Confirm & Send';
   showScreen('screen-success');
 }
 async function shareOnFarcaster() {
-  const text = 'Just tipped '+state.selectedAmount+' '+state.selectedToken+' to '+state.selectedRecipient.handle+' on Base!\n\nSend tips with TipJar';
-  try { const sdk=window.sdk; if(sdk&&sdk.actions&&sdk.actions.composeCast){await sdk.actions.composeCast({text,embeds:['https://tipjar-chi-snowy.vercel.app']});}else{window.open('https://warpcast.com/~/compose?text='+encodeURIComponent(text),'_blank');} } catch(e) { showToast('Opened Warpcast!'); }
+  const text = 'Just tipped ' + state.selectedAmount + ' ' + state.selectedToken + ' to ' + state.selectedRecipient.handle + ' on Base!\n\nSend tips with TipJar';
+  try {
+    const sdk = window.sdk;
+    if (sdk && sdk.actions && sdk.actions.composeCast) { await sdk.actions.composeCast({ text, embeds: ['https://tipjar-chi-snowy.vercel.app'] }); }
+    else { window.open('https://warpcast.com/~/compose?text=' + encodeURIComponent(text), '_blank'); }
+  } catch(e) { showToast('Opening Warpcast...'); }
 }
-function switchTab(btn,id){document.querySelectorAll('.nav-tab').forEach(b=>b.classList.remove('active'));btn.classList.add('active');document.getElementById('tab-link').style.display=id==='tab-link'?'block':'none';document.getElementById('tab-history').style.display=id==='tab-history'?'block':'none';}
-function copyLink(){const l='https://tipjar-chi-snowy.vercel.app/tip/'+state.username;navigator.clipboard.writeText(l).then(()=>showToast('Link Copied!')).catch(()=>showToast('Link Copied!'));}
-function drawQR(){const c=document.getElementById('qrCanvas');if(!c)return;const x=c.getContext('2d'),s=168,n=21,cs=Math.floor(s/n);x.fillStyle='#fff';x.fillRect(0,0,s,s);function b(r,c){if(r<7&&c<7)return f(r,c);if(r<7&&c>=n-7)return f(r,c-(n-7));if(r>=n-7&&c<7)return f(r-(n-7),c);return((r*31+c*17+r*c)%7)<4?1:0;}function f(r,c){if(r===0||r===6||c===0||c===6)return 1;if(r>=2&&r<=4&&c>=2&&c<=4)return 1;return 0;}x.fillStyle='#0a0a0f';for(let r=0;r<n;r++)for(let c=0;c<n;c++)if(b(r,c)){x.beginPath();x.roundRect(c*cs+1,r*cs+1,cs-2,cs-2,2);x.fill();}}
-function showToast(m){const t=document.getElementById('toast');t.textContent=m;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2200);}
-function rHex(n){return[...Array(n)].map(()=>Math.floor(Math.random()*16).toString(16)).join('');}
-window.addEventListener('DOMContentLoaded',()=>{ initFarcaster(); drawQR(); });
+function switchTab(btn, id) { document.querySelectorAll('.nav-tab').forEach(b => b.classList.remove('active')); btn.classList.add('active'); document.getElementById('tab-link').style.display = id === 'tab-link' ? 'block' : 'none'; document.getElementById('tab-history').style.display = id === 'tab-history' ? 'block' : 'none'; }
+function copyLink() { const l = 'https://tipjar-chi-snowy.vercel.app/tip/' + state.username; navigator.clipboard.writeText(l).then(() => showToast('Link Copied!')).catch(() => showToast('Copied!')); }
+function drawQR() {
+  const c = document.getElementById('qrCanvas'); if (!c) return;
+  const x = c.getContext('2d'), s = 168, n = 21, cs = Math.floor(s/n);
+  x.fillStyle = '#fff'; x.fillRect(0,0,s,s);
+  function b(r,c){if(r<7&&c<7)return f(r,c);if(r<7&&c>=n-7)return f(r,c-(n-7));if(r>=n-7&&c<7)return f(r-(n-7),c);return((r*31+c*17+r*c)%7)<4?1:0;}
+  function f(r,c){if(r===0||r===6||c===0||c===6)return 1;if(r>=2&&r<=4&&c>=2&&c<=4)return 1;return 0;}
+  x.fillStyle='#0a0a0f';
+  for(let r=0;r<n;r++) for(let c=0;c<n;c++) if(b(r,c)){x.beginPath();x.roundRect(c*cs+1,r*cs+1,cs-2,cs-2,2);x.fill();}
+}
+function showToast(m) { const t = document.getElementById('toast'); t.textContent = m; t.classList.add('show'); setTimeout(() => t.classList.remove('show'), 2200); }
+function rHex(n) { return [...Array(n)].map(() => Math.floor(Math.random()*16).toString(16)).join(''); }
+window.addEventListener('DOMContentLoaded', () => { initFarcaster(); drawQR(); });
 </script>
 </body>
 </html>
