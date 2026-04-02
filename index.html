@@ -1,4 +1,5 @@
 <!DOCTYPE html>
+
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
@@ -9,372 +10,509 @@
   <meta property="og:title" content="TipJar Agent 🏴‍☠️" />
   <meta property="og:image" content="https://placehold.co/1200x630/7c5cfc/ffffff?text=TipJar" />
 
-  <!-- React via CDN — pre-built, no Babel needed -->
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
-
-  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet" />
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-    body { background: #060610; color: #d0d0d0; font-family: 'DM Mono', monospace; }
-    ::-webkit-scrollbar { width: 3px; }
-    ::-webkit-scrollbar-thumb { background: #1a3a2a; border-radius: 2px; }
+    body { background: #060610; color: #d0d0d0; font-family: 'DM Mono', 'Courier New', monospace; padding: 20px 16px; min-height: 100vh; }
     @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
     @keyframes fadeIn { from{opacity:0;transform:translateY(6px)} to{opacity:1;transform:translateY(0)} }
     a { color: #00cc66; }
-    .fade { animation: fadeIn 0.3s ease; }
-    .pulse { animation: pulse 1s infinite; }
+
+    .header { display:flex; align-items:center; justify-content:space-between; margin-bottom:22px; }
+    .title { font-size:21px; font-weight:800; letter-spacing:-0.5px; }
+    .title span { color:#00ff88; }
+    .subtitle { color:#333; font-size:10px; margin-top:2px; }
+    .stats { display:flex; gap:18px; }
+    .stat { text-align:center; }
+    .stat-val { font-size:19px; font-weight:800; color:#aaa; }
+    .stat-label { font-size:9px; color:#333; text-transform:uppercase; letter-spacing:0.8px; }
+
+    .wallet-row { display:flex; gap:10px; margin-bottom:14px; flex-wrap:wrap; }
+    .btn-wallet { flex:1; min-width:160px; padding:9px 14px; background:rgba(255,255,255,0.03); border:1px solid #0f0f1a; border-radius:7px; color:#555; font-size:12px; cursor:pointer; font-family:inherit; text-align:left; }
+    .btn-wallet.connected { background:rgba(96,192,255,0.08); border-color:#1a3a5a; color:#60c0ff; }
+    .cap-box { display:flex; align-items:center; gap:6px; background:rgba(255,255,255,0.02); border:1px solid #0f0f1a; border-radius:7px; padding:9px 12px; }
+    .cap-box span { font-size:11px; color:#444; }
+    .cap-input { width:50px; background:transparent; border:1px solid #2a2a3a; border-radius:4px; color:#f0c040; font-size:12px; padding:2px 5px; outline:none; font-family:inherit; }
+    .spent-box { display:flex; align-items:center; padding:9px 12px; background:rgba(240,192,64,0.04); border:1px solid #2a2a1a; border-radius:7px; font-size:11px; color:#f0c040; }
+    .cap-err { color:#ff6060; font-size:11px; margin-bottom:10px; }
+
+    .rules-box { background:rgba(255,255,255,0.01); border:1px solid #0f0f18; border-radius:10px; padding:14px; margin-bottom:14px; }
+    .rules-title { font-size:10px; color:#2a2a3a; margin-bottom:10px; text-transform:uppercase; letter-spacing:1px; }
+    .rules-grid { display:grid; grid-template-columns:1fr 1fr; gap:8px; }
+    .rule-item { background:rgba(0,0,0,0.2); border:1px solid #0a0a14; border-radius:7px; padding:9px 11px; display:flex; align-items:center; gap:8px; }
+    .rule-item.active { background:rgba(0,255,136,0.03); border-color:#0f3a1f; }
+    .rule-label { flex:1; font-size:11px; color:#333; }
+    .rule-item.active .rule-label { color:#bbb; }
+    .rule-reward { width:44px; background:transparent; border:1px solid #2a2a3a; border-radius:4px; color:#f0c040; font-size:11px; padding:2px 4px; text-align:right; outline:none; font-family:inherit; }
+    .rule-usdc { font-size:10px; color:#333; }
+
+    .controls { display:flex; gap:8px; margin-bottom:14px; }
+    .btn-start { flex:1; padding:11px 18px; background:linear-gradient(135deg,#00ff88,#00cc55); color:#000; border:none; border-radius:8px; font-size:13px; font-weight:700; cursor:pointer; font-family:inherit; display:flex; align-items:center; justify-content:center; gap:8px; }
+    .btn-start.running { background:rgba(255,96,96,0.08); color:#ff6060; border:1px solid #ff606033; }
+    .btn-tipjar { padding:11px 14px; background:transparent; border:1px solid #0f0f1a; border-radius:8px; color:#444; font-size:12px; cursor:pointer; font-family:inherit; }
+    .pulse-dot { animation:pulse 1s infinite; font-size:10px; }
+
+    .tabs { display:flex; gap:2px; margin-bottom:12px; }
+    .tab-btn { padding:5px 14px; background:transparent; border:1px solid #0a0a14; border-radius:6px; color:#333; font-size:10px; cursor:pointer; font-family:inherit; text-transform:uppercase; letter-spacing:0.8px; }
+    .tab-btn.active { background:rgba(0,255,136,0.06); border-color:#0f3a1f; color:#00ff88; }
+
+    .log-box { background:#07070f; border:1px solid #0f2a0f; border-radius:8px; padding:12px 14px; height:210px; overflow-y:auto; font-size:11.5px; }
+    .log-box::-webkit-scrollbar { width:3px; }
+    .log-box::-webkit-scrollbar-thumb { background:#1a3a2a; border-radius:2px; }
+    .log-idle { color:#252535; }
+    .log-line { margin-bottom:3px; }
+    .log-time { color:#1a1a2a; }
+
+    .feed-empty { text-align:center; color:#1a1a2a; padding:48px; font-size:13px; }
+
+    .post-card { border-radius:10px; padding:14px; margin-bottom:8px; animation:fadeIn 0.3s ease; border:1px solid #0f0f18; background:rgba(255,255,255,0.01); }
+    .post-card.approved { background:rgba(255,255,255,0.03); border-color:#1a2a3a; }
+    .post-card.tipped { background:rgba(0,255,136,0.05); border-color:#1a5a2a; }
+    .post-inner { display:flex; gap:10px; }
+    .post-avatar { width:36px; height:36px; border-radius:50%; object-fit:cover; flex-shrink:0; background:#111; display:flex; align-items:center; justify-content:center; font-size:18px; }
+    .post-body { flex:1; min-width:0; }
+    .post-top { display:flex; justify-content:space-between; margin-bottom:3px; }
+    .post-display { color:#ddd; font-weight:600; font-size:13px; }
+    .post-username { color:#333; font-size:11px; }
+    .post-text { color:#888; font-size:12px; line-height:1.5; margin-bottom:6px; word-break:break-word; }
+    .post-meta { display:flex; gap:12px; font-size:11px; color:#333; margin-bottom:8px; }
+    .post-rule { color:#f0c04088; }
+    .post-result { background:#0a0a12; border-radius:6px; padding:8px 10px; font-size:11px; }
+    .result-sending { color:#60c0ff; animation:pulse 1s infinite; }
+    .result-sent { color:#00ff88; }
+    .result-label { font-weight:600; margin-bottom:3px; }
+    .result-label.yes { color:#00ff88; }
+    .result-label.no { color:#555; }
+    .result-reason { color:#555; line-height:1.5; }
+    .result-actions { margin-top:8px; display:flex; gap:8px; flex-wrap:wrap; }
+    .btn-tipjar-action { padding:5px 12px; background:linear-gradient(135deg,#00ff88,#00cc66); color:#000; border:none; border-radius:5px; font-size:11px; font-weight:700; cursor:pointer; }
+    .btn-autosend { padding:5px 12px; background:linear-gradient(135deg,#60c0ff,#3080cc); color:#000; border:none; border-radius:5px; font-size:11px; font-weight:700; cursor:pointer; }
+    .no-wallet-msg { color:#444; font-size:11px; line-height:2; }
+
+    .footer { margin-top:24px; text-align:center; font-size:10px; color:#111; }
+    .wrap { max-width:700px; margin:0 auto; }
   </style>
+
 </head>
 <body>
-  <div id="root">
-    <div style="display:flex;align-items:center;justify-content:center;height:100vh;background:#060610;color:#00ff88;font-family:monospace;font-size:14px;letter-spacing:1px;">
-      🏴‍☠️ Loading…
+<div class="wrap">
+
+  <!-- Header -->
+
+  <div class="header">
+    <div>
+      <div class="title">🏴‍☠️ <span>TipJar</span> Agent</div>
+      <div class="subtitle" id="subtitle">@kennyethbase · FID 1401103 · Base · Neynar · Claude AI</div>
+    </div>
+    <div class="stats">
+      <div class="stat"><div class="stat-val" id="stat-scanned">0</div><div class="stat-label">Scanned</div></div>
+      <div class="stat"><div class="stat-val" id="stat-approved" style="color:#00ff88">0</div><div class="stat-label">Approved</div></div>
+      <div class="stat"><div class="stat-val" id="stat-usdc" style="color:#f0c040">$0</div><div class="stat-label">USDC</div></div>
     </div>
   </div>
 
-  <script>
-    const { useState, useRef, useCallback, createElement: h } = React;
+  <!-- Wallet + Cap -->
 
-    const NEYNAR_KEY    = '6B1A7112-1E77-440E-84EA-BED313D7E0B4';
-    const TIPJAR_URL    = 'https://tipjar-chi-snowy.vercel.app';
-    const USERNAME      = 'kennyethbase';
-    const FID           = 1401103;
-    const BASE_CHAIN_ID = '0x2105';
-    const USDC_ADDRESS  = '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913';
+  <div class="wallet-row">
+    <button class="btn-wallet" id="btn-wallet" onclick="connectWallet()">🔌 Connect Wallet for Auto-send</button>
+    <div class="cap-box">
+      <span>Daily cap</span>
+      <input class="cap-input" type="number" id="daily-cap" value="10" min="1" step="1" />
+      <span>USDC</span>
+    </div>
+    <div class="spent-box" id="spent-box" style="display:none">Spent: $<span id="spent-val">0</span></div>
+  </div>
+  <div class="cap-err" id="cap-err" style="display:none"></div>
 
-    const PRESET_RULES = [
-      { id:'mention',    label:'Mentions Golden Pirate Base', reward:'1',    active:true  },
-      { id:'recast',     label:'Recasts your posts',          reward:'0.5',  active:true  },
-      { id:'engagement', label:'High engagement (10+ likes)', reward:'2',    active:true  },
-      { id:'follow',     label:'New follower',                reward:'0.25', active:false },
-    ];
+  <!-- Rules -->
 
-    const ts        = () => new Date().toLocaleTimeString('en-US',{hour12:false});
-    const shortAddr = a => a ? a.slice(0,6)+'…'+a.slice(-4) : '';
+  <div class="rules-box">
+    <div class="rules-title">Tipping Rules</div>
+    <div class="rules-grid" id="rules-grid"></div>
+  </div>
 
-    function encodeTransfer(to, amountUsdc) {
-      const selector   = 'a9059cbb';
-      const paddedAddr = to.replace('0x','').padStart(64,'0');
-      const amount     = BigInt(Math.round(parseFloat(amountUsdc)*1_000_000));
-      const paddedAmt  = amount.toString(16).padStart(64,'0');
-      return '0x'+selector+paddedAddr+paddedAmt;
-    }
+  <!-- Controls -->
 
-    function classifyPost(cast) {
-      const txt = (cast.text||'').toLowerCase();
-      if (txt.includes('golden pirate')||txt.includes('goldenpirate')||txt.includes('gpb')) return 'mention';
-      if ((cast.reactions?.likes_count??0)>=10) return 'engagement';
-      if ((cast.reactions?.recasts_count??0)>0)  return 'recast';
-      return 'other';
-    }
+  <div class="controls">
+    <button class="btn-start" id="btn-start" onclick="toggleAgent()">▶  Start Agent — Live Farcaster Feed</button>
+    <button class="btn-tipjar" onclick="window.open('https://tipjar-chi-snowy.vercel.app','_blank')">TipJar ↗</button>
+  </div>
 
-    // ── Log ──
-    function Log({logs}) {
-      const endRef = useRef(null);
-      const prev   = useRef(0);
-      if (logs.length !== prev.current) {
-        prev.current = logs.length;
-        setTimeout(()=>endRef.current?.scrollIntoView({behavior:'smooth'}),50);
+  <!-- Tabs -->
+
+  <div class="tabs">
+    <button class="tab-btn active" id="tab-feed" onclick="switchTab('feed')">Feed (0)</button>
+    <button class="tab-btn" id="tab-approved" onclick="switchTab('approved')">Approved (0)</button>
+    <button class="tab-btn" id="tab-log" onclick="switchTab('log')">Log</button>
+  </div>
+
+  <!-- Tab content -->
+
+  <div id="content-feed"><div class="feed-empty">Hit Start Agent to pull your live Farcaster feed</div></div>
+  <div id="content-approved" style="display:none"><div class="feed-empty">No approved tips yet</div></div>
+  <div id="content-log" style="display:none">
+    <div class="log-box" id="log-box"><span class="log-idle">Agent idle…</span></div>
+  </div>
+
+  <div class="footer">Live feed via Neynar · AI by Claude · Tips on Base · 🏴‍☠️ Golden Pirate Base</div>
+</div>
+
+<script>
+  // ── Config ────────────────────────────────────────────────────────────────
+  const NEYNAR_KEY    = '6B1A7112-1E77-440E-84EA-BED313D7E0B4';
+  const TIPJAR_URL    = 'https://tipjar-chi-snowy.vercel.app';
+  const USERNAME      = 'kennyethbase';
+  const FID           = 1401103;
+  const BASE_CHAIN_ID = '0x2105';
+  const USDC_ADDRESS  = '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913';
+
+  // ── State ─────────────────────────────────────────────────────────────────
+  let rules = [
+    { id:'mention',    label:'Mentions Golden Pirate Base', reward:'1',    active:true  },
+    { id:'recast',     label:'Recasts your posts',          reward:'0.5',  active:true  },
+    { id:'engagement', label:'High engagement (10+ likes)', reward:'2',    active:true  },
+    { id:'follow',     label:'New follower',                reward:'0.25', active:false },
+  ];
+  let running     = false;
+  let stopFlag    = false;
+  let wallet      = null;
+  let spentToday  = 0;
+  let posts       = [];
+  let evals       = {};   // hash -> {decision, reason, tipping}
+  let txHashes    = {};   // hash -> txHash string
+  let currentTab  = 'feed';
+
+  // ── Render rules ─────────────────────────────────────────────────────────
+  function renderRules() {
+    const grid = document.getElementById('rules-grid');
+    grid.innerHTML = rules.map((r,i) => `
+      <div class="rule-item ${r.active?'active':''}" id="rule-${r.id}">
+        <input type="checkbox" ${r.active?'checked':''} style="accent-color:#00ff88;width:13px;height:13px;cursor:pointer;flex-shrink:0" onchange="toggleRule('${r.id}')"/>
+        <span class="rule-label">${r.label}</span>
+        <input class="rule-reward" type="number" value="${r.reward}" min="0.1" step="0.1" onchange="setReward('${r.id}',this.value)"/>
+        <span class="rule-usdc">USDC</span>
+      </div>`).join('');
+  }
+
+  function toggleRule(id) {
+    rules = rules.map(r => r.id===id ? {...r, active:!r.active} : r);
+    renderRules();
+  }
+  function setReward(id, v) {
+    rules = rules.map(r => r.id===id ? {...r, reward:v} : r);
+  }
+
+  // ── Helpers ───────────────────────────────────────────────────────────────
+  const ts        = () => new Date().toLocaleTimeString('en-US',{hour12:false});
+  const shortAddr = a => a ? a.slice(0,6)+'…'+a.slice(-4) : '';
+
+  function encodeTransfer(to, amountUsdc) {
+    const selector   = 'a9059cbb';
+    const paddedAddr = to.replace('0x','').padStart(64,'0');
+    const amount     = BigInt(Math.round(parseFloat(amountUsdc)*1_000_000));
+    const paddedAmt  = amount.toString(16).padStart(64,'0');
+    return '0x'+selector+paddedAddr+paddedAmt;
+  }
+
+  function classifyPost(cast) {
+    const txt = (cast.text||'').toLowerCase();
+    if (txt.includes('golden pirate')||txt.includes('goldenpirate')||txt.includes('gpb')) return 'mention';
+    if ((cast.reactions?.likes_count??0)>=10) return 'engagement';
+    if ((cast.reactions?.recasts_count??0)>0)  return 'recast';
+    return 'other';
+  }
+
+  // ── Log ───────────────────────────────────────────────────────────────────
+  let logLines = [];
+  function log(m, k='info') {
+    logLines.push({m,k,t:ts()});
+    if (logLines.length > 120) logLines = logLines.slice(-120);
+    if (currentTab === 'log') renderLog();
+  }
+  function renderLog() {
+    const box = document.getElementById('log-box');
+    if (!box) return;
+    const colorMap = {tip:'#00ff88',eval:'#f0c040',error:'#ff6060',wallet:'#60c0ff',info:'#3a4a3a'};
+    box.innerHTML = logLines.length
+      ? logLines.map(l=>`<div class="log-line" style="color:${colorMap[l.k]||'#3a4a3a'}"><span class="log-time">[${l.t}]</span> ${l.m}</div>`).join('')
+      : '<span class="log-idle">Agent idle…</span>';
+    box.scrollTop = box.scrollHeight;
+  }
+
+  // ── Stats ─────────────────────────────────────────────────────────────────
+  let stats = {scanned:0, approved:0, usdc:0};
+  function updateStats(s) {
+    stats = {...stats, ...s};
+    document.getElementById('stat-scanned').textContent  = stats.scanned;
+    document.getElementById('stat-approved').textContent = stats.approved;
+    document.getElementById('stat-usdc').textContent     = '$'+stats.usdc;
+  }
+
+  // ── Tab switch ────────────────────────────────────────────────────────────
+  function switchTab(tab) {
+    currentTab = tab;
+    ['feed','approved','log'].forEach(t => {
+      document.getElementById('content-'+t).style.display = t===tab?'block':'none';
+      document.getElementById('tab-'+t).classList.toggle('active', t===tab);
+    });
+    if (tab==='log') renderLog();
+    if (tab==='feed') renderFeed();
+    if (tab==='approved') renderApproved();
+  }
+
+  // ── Post card HTML ────────────────────────────────────────────────────────
+  function postCardHTML(post) {
+    const evl   = evals[post.hash];
+    const tx    = txHashes[post.hash];
+    const rule  = rules.find(r=>r.id===post.type && r.active);
+    if (!evl) return `
+      <div class="post-card" id="card-${post.hash}">
+        <div class="post-inner">
+          ${post.pfp_url
+            ? `<img class="post-avatar" src="${post.pfp_url}" alt="" />`
+            : `<div class="post-avatar">👤</div>`}
+          <div class="post-body">
+            <div class="post-top"><span class="post-display">${post.display}</span><span class="post-username">@${post.username}</span></div>
+            <div class="post-text">${(post.text||'').slice(0,220)}${(post.text||'').length>220?'…':''}</div>
+            <div class="post-meta"><span>❤️ ${post.likes??0}</span><span>🔁 ${post.recasts??0}</span></div>
+            <div class="post-result"><span style="color:#333">Pending evaluation…</span></div>
+          </div>
+        </div>
+      </div>`;
+
+    const {decision, reason, tipping} = evl;
+    const cardClass = tx?'tipped':decision?'approved':'';
+    const resultHTML = tipping && !tx
+      ? `<div class="result-sending">⏳ Sending ${rule?.reward} USDC on Base…</div>`
+      : tx
+      ? `<div class="result-sent">✅ Sent ${rule?.reward} USDC · <a href="https://basescan.org/tx/${tx}" target="_blank">View on Basescan ↗</a></div>`
+      : `<div class="result-label ${decision?'yes':'no'}">${decision?'✅ Agent approves tip':'⏭️ Skipped'}</div>
+         <div class="result-reason">${reason||''}</div>
+         ${decision && rule ? `
+           <div class="result-actions">
+             <button class="btn-tipjar-action" onclick="window.open('${TIPJAR_URL}?to=${post.username}&amount=${rule.reward}&token=USDC','_blank')">TipJar ↗ ${rule.reward} USDC</button>
+             ${wallet && post.wallet_address
+               ? `<button class="btn-autosend" onclick="autoTip('${post.hash}')">Auto-send 🔒</button>`
+               : wallet && !post.wallet_address
+               ? `<span class="no-wallet-msg">No verified wallet on Farcaster</span>`
+               : ''}
+           </div>` : ''}`;
+
+    return `
+      <div class="post-card ${cardClass}" id="card-${post.hash}">
+        <div class="post-inner">
+          ${post.pfp_url
+            ? `<img class="post-avatar" src="${post.pfp_url}" alt="" />`
+            : `<div class="post-avatar">👤</div>`}
+          <div class="post-body">
+            <div class="post-top"><span class="post-display">${post.display}</span><span class="post-username">@${post.username}</span></div>
+            <div class="post-text">${(post.text||'').slice(0,220)}${(post.text||'').length>220?'…':''}</div>
+            <div class="post-meta">
+              <span>❤️ ${post.likes??0}</span>
+              <span>🔁 ${post.recasts??0}</span>
+              ${rule?`<span class="post-rule">Rule: ${rule.label}</span>`:''}
+            </div>
+            <div class="post-result">${resultHTML}</div>
+          </div>
+        </div>
+      </div>`;
+  }
+
+  function renderFeed() {
+    const el = document.getElementById('content-feed');
+    document.getElementById('tab-feed').textContent = `Feed (${posts.length})`;
+    el.innerHTML = posts.length
+      ? posts.map(postCardHTML).join('')
+      : '<div class="feed-empty">Hit Start Agent to pull your live Farcaster feed</div>';
+  }
+
+  function renderApproved() {
+    const approved = posts.filter(p=>evals[p.hash]?.decision);
+    const el = document.getElementById('content-approved');
+    document.getElementById('tab-approved').textContent = `Approved (${approved.length})`;
+    el.innerHTML = approved.length
+      ? approved.map(postCardHTML).join('')
+      : '<div class="feed-empty">No approved tips yet</div>';
+  }
+
+  function updateCard(hash) {
+    const card = document.getElementById('card-'+hash);
+    const post = posts.find(p=>p.hash===hash);
+    if (card && post) card.outerHTML = postCardHTML(post);
+    // re-grab after outerHTML replace
+    document.getElementById('tab-approved').textContent = `Approved (${posts.filter(p=>evals[p.hash]?.decision).length})`;
+  }
+
+  // ── Wallet ────────────────────────────────────────────────────────────────
+  async function connectWallet() {
+    if (!window.ethereum) { alert('No wallet detected. Use a Web3 browser.'); return; }
+    try {
+      const accounts = await window.ethereum.request({method:'eth_requestAccounts'});
+      try {
+        await window.ethereum.request({method:'wallet_switchEthereumChain',params:[{chainId:BASE_CHAIN_ID}]});
+      } catch(sw) {
+        if (sw.code===4902) {
+          await window.ethereum.request({method:'wallet_addEthereumChain',params:[{chainId:BASE_CHAIN_ID,chainName:'Base Mainnet',nativeCurrency:{name:'ETH',symbol:'ETH',decimals:18},rpcUrls:['https://mainnet.base.org'],blockExplorerUrls:['https://basescan.org']}]});
+        }
       }
-      return h('div',{style:{background:'#07070f',border:'1px solid #0f2a0f',borderRadius:8,padding:'12px 14px',height:210,overflowY:'auto',fontSize:11.5}},
-        !logs.length && h('span',{style:{color:'#252535'}},'Agent idle…'),
-        ...logs.map((l,i)=>h('div',{key:i,style:{marginBottom:3,color:l.k==='tip'?'#00ff88':l.k==='eval'?'#f0c040':l.k==='error'?'#ff6060':l.k==='wallet'?'#60c0ff':'#3a4a3a'}},
-          h('span',{style:{color:'#1a1a2a'}},'['+l.t+'] '),l.m
-        )),
-        h('div',{ref:endRef})
-      );
+      wallet = accounts[0];
+      const btn = document.getElementById('btn-wallet');
+      btn.textContent = '🔒 '+shortAddr(wallet)+' (Base)';
+      btn.classList.add('connected');
+      log('🔒 Wallet connected: '+shortAddr(wallet),'wallet');
+    } catch(e) { log('Wallet error: '+e.message,'error'); }
+  }
+
+  // ── Auto-tip ──────────────────────────────────────────────────────────────
+  async function autoTip(hash) {
+    const post = posts.find(p=>p.hash===hash);
+    const rule = rules.find(r=>r.id===post.type&&r.active);
+    if (!post||!rule) return;
+    const amt  = parseFloat(rule.reward);
+    const cap  = parseFloat(document.getElementById('daily-cap').value||'10');
+    if (spentToday+amt>cap) {
+      document.getElementById('cap-err').textContent='⛔ Daily cap of $'+cap+' USDC reached!';
+      document.getElementById('cap-err').style.display='block';
+      log('⛔ Daily cap reached — skipping @'+post.username,'error');
+      return;
+    }
+    evals[hash] = {...evals[hash], tipping:true};
+    updateCard(hash);
+    log('💸 Requesting signature: '+rule.reward+' USDC → @'+post.username+'…','tip');
+    try {
+      const data = encodeTransfer(post.wallet_address, amt);
+      const tx   = await window.ethereum.request({method:'eth_sendTransaction',params:[{from:wallet,to:USDC_ADDRESS,data,chainId:BASE_CHAIN_ID}]});
+      txHashes[hash] = tx;
+      spentToday = +(spentToday+amt).toFixed(2);
+      document.getElementById('spent-val').textContent = spentToday;
+      document.getElementById('spent-box').style.display='flex';
+      updateStats({approved:stats.approved+1, usdc:+(stats.usdc+amt).toFixed(2)});
+      log('✅ Sent '+rule.reward+' USDC to @'+post.username+' · '+tx.slice(0,16)+'…','tip');
+    } catch(e) { log('Tx failed: '+e.message,'error'); }
+    finally {
+      evals[hash] = {...evals[hash], tipping:false};
+      updateCard(hash);
+    }
+  }
+
+  // ── Fetch feed ────────────────────────────────────────────────────────────
+  async function fetchFeed() {
+    const res = await fetch(
+      `https://api.neynar.com/v2/farcaster/feed?feed_type=following&fid=${FID}&limit=25&include_replies=false`,
+      {headers:{'x-api-key':NEYNAR_KEY,'accept':'application/json'}}
+    );
+    if (!res.ok) throw new Error('Neynar error '+res.status);
+    const data = await res.json();
+    return (data.casts||[]).map(c=>({
+      hash:          c.hash,
+      username:      c.author?.username||'unknown',
+      display:       c.author?.display_name||c.author?.username||'Unknown',
+      pfp_url:       c.author?.pfp_url||null,
+      text:          c.text||'',
+      likes:         c.reactions?.likes_count??0,
+      recasts:       c.reactions?.recasts_count??0,
+      wallet_address:c.author?.verified_addresses?.eth_addresses?.[0]||null,
+      type:          classifyPost(c),
+    }));
+  }
+
+  // ── Claude eval ───────────────────────────────────────────────────────────
+  async function evalPost(post, rule) {
+    try {
+      const res = await fetch('https://api.anthropic.com/v1/messages',{
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({
+          model:'claude-sonnet-4-20250514',
+          max_tokens:200,
+          messages:[{role:'user',content:`Tipping agent for Golden Pirate Base on Base blockchain by @${USERNAME}.\nRule: "${rule.label}" — ${rule.reward} USDC\nPost by @${post.username}: "${post.text}"\nLikes:${post.likes} Recasts:${post.recasts}\nTip genuine supporters, skip spam/bots.\nRespond ONLY raw JSON: {"decision":true,"reason":"one sentence"}`}]
+        })
+      });
+      const d   = await res.json();
+      const txt = (d.content?.[0]?.text||'{}').replace(/```json|```/g,'').trim();
+      return JSON.parse(txt);
+    } catch { return {decision:false,reason:'Evaluation error — skipping.'}; }
+  }
+
+  // ── Agent loop ────────────────────────────────────────────────────────────
+  async function toggleAgent() {
+    if (running) {
+      stopFlag = true;
+      running  = false;
+      document.getElementById('btn-start').className='btn-start';
+      document.getElementById('btn-start').innerHTML='▶  Start Agent — Live Farcaster Feed';
+      log('⛔ Agent stopped.','error');
+      return;
     }
 
-    // ── PostCard ──
-    function PostCard({post,rule,evl,txHash,onAutoTip,walletConnected}) {
-      if (!evl) return null;
-      const {decision,reason,tipping} = evl;
-      return h('div',{className:'fade',style:{
-        background:txHash?'rgba(0,255,136,0.05)':decision?'rgba(255,255,255,0.03)':'rgba(255,255,255,0.01)',
-        border:`1px solid ${txHash?'#1a5a2a':decision?'#1a2a3a':'#0f0f18'}`,
-        borderRadius:10,padding:14,marginBottom:8
-      }},
-        h('div',{style:{display:'flex',gap:10}},
-          post.pfp_url
-            ? h('img',{src:post.pfp_url,alt:'',style:{width:36,height:36,borderRadius:'50%',objectFit:'cover',flexShrink:0}})
-            : h('div',{style:{width:36,height:36,borderRadius:'50%',background:'#111',display:'flex',alignItems:'center',justifyContent:'center',fontSize:18}},'👤'),
-          h('div',{style:{flex:1,minWidth:0}},
-            h('div',{style:{display:'flex',justifyContent:'space-between',marginBottom:3}},
-              h('span',{style:{color:'#ddd',fontWeight:600,fontSize:13}},post.display),
-              h('span',{style:{color:'#333',fontSize:11}},'@'+post.username)
-            ),
-            h('div',{style:{color:'#888',fontSize:12,lineHeight:1.5,marginBottom:6,wordBreak:'break-word'}},
-              (post.text||'').slice(0,220)+((post.text||'').length>220?'…':'')
-            ),
-            h('div',{style:{display:'flex',gap:12,fontSize:11,color:'#333',marginBottom:8}},
-              h('span',null,'❤️ '+(post.likes??0)),
-              h('span',null,'🔁 '+(post.recasts??0)),
-              rule && h('span',{style:{color:'#f0c04088'}},'Rule: '+rule.label)
-            ),
-            h('div',{style:{background:'#0a0a12',borderRadius:6,padding:'8px 10px',fontSize:11}},
-              tipping && !txHash && h('div',{className:'pulse',style:{color:'#60c0ff'}},'⏳ Sending '+rule?.reward+' USDC on Base…'),
-              txHash && h('div',{style:{color:'#00ff88'}},
-                '✅ Sent '+rule?.reward+' USDC · ',
-                h('a',{href:'https://basescan.org/tx/'+txHash,target:'_blank',rel:'noreferrer'},'View on Basescan ↗')
-              ),
-              !tipping && !txHash && h(React.Fragment,null,
-                h('div',{style:{color:decision?'#00ff88':'#555',fontWeight:600,marginBottom:3}},
-                  decision?'✅ Agent approves tip':'⏭️ Skipped'
-                ),
-                h('div',{style:{color:'#555',lineHeight:1.5}},reason),
-                decision && rule && h('div',{style:{marginTop:8,display:'flex',gap:8,flexWrap:'wrap'}},
-                  h('button',{
-                    onClick:()=>window.open(`${TIPJAR_URL}?to=${post.username}&amount=${rule.reward}&token=USDC`,'_blank'),
-                    style:{padding:'5px 12px',background:'linear-gradient(135deg,#00ff88,#00cc66)',color:'#000',border:'none',borderRadius:5,fontSize:11,fontWeight:700,cursor:'pointer'}
-                  },'TipJar ↗ '+rule.reward+' USDC'),
-                  walletConnected && post.wallet_address && h('button',{
-                    onClick:()=>onAutoTip(post,rule),
-                    style:{padding:'5px 12px',background:'linear-gradient(135deg,#60c0ff,#3080cc)',color:'#000',border:'none',borderRadius:5,fontSize:11,fontWeight:700,cursor:'pointer'}
-                  },'Auto-send 🔒'),
-                  walletConnected && !post.wallet_address && h('span',{style:{color:'#444',fontSize:11,lineHeight:2}},'No verified wallet on Farcaster')
-                )
-              )
-            )
-          )
-        )
-      );
+    running  = true;
+    stopFlag = false;
+    evals    = {}; txHashes = {}; posts = []; logLines = [];
+    updateStats({scanned:0,approved:0,usdc:0});
+    document.getElementById('cap-err').style.display='none';
+    document.getElementById('btn-start').className='btn-start running';
+    document.getElementById('btn-start').innerHTML='<span class="pulse-dot">●</span> Stop Agent';
+    renderFeed();
+
+    log('🏴‍☠️ TipJar Agent starting…');
+    log('Identity: @'+USERNAME+' · FID '+FID);
+    await sleep(500);
+
+    try {
+      log('Fetching live Farcaster feed via Neynar…');
+      posts = await fetchFeed();
+      log('✅ Loaded '+posts.length+' live posts','tip');
+    } catch(e) {
+      log('Feed error: '+e.message,'error');
+      running=false;
+      document.getElementById('btn-start').className='btn-start';
+      document.getElementById('btn-start').innerHTML='▶  Start Agent — Live Farcaster Feed';
+      return;
     }
 
-    // ── Main App ──
-    function TipJarAgent() {
-      const [rules,setRules]           = useState(PRESET_RULES);
-      const [running,setRunning]       = useState(false);
-      const [logs,setLogs]             = useState([]);
-      const [posts,setPosts]           = useState([]);
-      const [evl,setEvl]               = useState({});
-      const [txHash,setTxHash]         = useState({});
-      const [stats,setStats]           = useState({scanned:0,approved:0,usdc:0});
-      const [tab,setTab]               = useState('feed');
-      const [wallet,setWallet]         = useState(null);
-      const [dailyCap,setDailyCap]     = useState('10');
-      const [spentToday,setSpentToday] = useState(0);
-      const [capErr,setCapErr]         = useState('');
-      const runRef = useRef(false);
+    updateStats({scanned:posts.length});
+    renderFeed();
+    const activeRules = rules.filter(r=>r.active);
+    log('Active rules: '+activeRules.map(r=>r.label).join(' · '));
+    await sleep(400);
 
-      const log = useCallback((m,k='info')=>{
-        setLogs(prev=>[...prev.slice(-120),{m,k,t:ts()}]);
-      },[]);
-
-      const connectWallet = async()=>{
-        if (!window.ethereum){alert('No wallet detected.');return;}
-        try {
-          const accounts = await window.ethereum.request({method:'eth_requestAccounts'});
-          try {
-            await window.ethereum.request({method:'wallet_switchEthereumChain',params:[{chainId:BASE_CHAIN_ID}]});
-          } catch(sw){
-            if(sw.code===4902){
-              await window.ethereum.request({method:'wallet_addEthereumChain',params:[{chainId:BASE_CHAIN_ID,chainName:'Base Mainnet',nativeCurrency:{name:'ETH',symbol:'ETH',decimals:18},rpcUrls:['https://mainnet.base.org'],blockExplorerUrls:['https://basescan.org']}]});
-            }
-          }
-          setWallet(accounts[0]);
-          log('🔒 Wallet connected: '+shortAddr(accounts[0]),'wallet');
-        } catch(e){log('Wallet error: '+e.message,'error');}
-      };
-
-      const fetchFeed = async()=>{
-        const res = await fetch(
-          `https://api.neynar.com/v2/farcaster/feed?feed_type=following&fid=${FID}&limit=25&include_replies=false`,
-          {headers:{'x-api-key':NEYNAR_KEY,'accept':'application/json'}}
-        );
-        if(!res.ok) throw new Error('Neynar error '+res.status);
-        const data = await res.json();
-        return (data.casts||[]).map(c=>({
-          hash:          c.hash,
-          username:      c.author?.username||'unknown',
-          display:       c.author?.display_name||c.author?.username||'Unknown',
-          pfp_url:       c.author?.pfp_url||null,
-          text:          c.text||'',
-          likes:         c.reactions?.likes_count??0,
-          recasts:       c.reactions?.recasts_count??0,
-          wallet_address:c.author?.verified_addresses?.eth_addresses?.[0]||null,
-          type:          classifyPost(c),
-        }));
-      };
-
-      const evalPost = async(post,rule)=>{
-        try {
-          const res = await fetch('https://api.anthropic.com/v1/messages',{
-            method:'POST',
-            headers:{'Content-Type':'application/json'},
-            body:JSON.stringify({
-              model:'claude-sonnet-4-20250514',
-              max_tokens:1000,
-              messages:[{role:'user',content:`You are a tipping agent for Golden Pirate Base (@GoldenPirateBase), an NFT gaming project on Base blockchain managed by @${USERNAME}.\n\nTriggered rule: "${rule.label}" — reward: ${rule.reward} USDC\nPost by @${post.username}: "${post.text}"\nStats: ${post.likes} likes, ${post.recasts} recasts\n\nShould this post receive a USDC tip? Tip genuine community supporters. Skip spam, bots, or low-effort content.\n\nReply ONLY with raw JSON, no markdown:\n{"decision": true or false, "reason": "one concise sentence"}`}]
-            })
-          });
-          const d   = await res.json();
-          const txt = (d.content?.[0]?.text||'{}').replace(/```json|```/g,'').trim();
-          return JSON.parse(txt);
-        } catch { return {decision:false,reason:'Evaluation error — skipping to be safe.'}; }
-      };
-
-      const autoTip = async(post,rule)=>{
-        const amt = parseFloat(rule.reward);
-        if(spentToday+amt>parseFloat(dailyCap||'10')){
-          setCapErr('Daily cap of $'+dailyCap+' USDC reached!');
-          log('⛔ Daily cap reached — skipping @'+post.username,'error');
-          return;
-        }
-        setEvl(prev=>({...prev,[post.hash]:{...prev[post.hash],tipping:true}}));
-        log('💸 Requesting signature: '+rule.reward+' USDC → @'+post.username+'…','tip');
-        try {
-          const data = encodeTransfer(post.wallet_address,amt);
-          const tx   = await window.ethereum.request({method:'eth_sendTransaction',params:[{from:wallet,to:USDC_ADDRESS,data,chainId:BASE_CHAIN_ID}]});
-          setTxHash(prev=>({...prev,[post.hash]:tx}));
-          setSpentToday(s=>+(s+amt).toFixed(2));
-          setStats(s=>({...s,approved:s.approved+1,usdc:+(s.usdc+amt).toFixed(2)}));
-          log('✅ Sent '+rule.reward+' USDC to @'+post.username+' · '+tx.slice(0,16)+'…','tip');
-        } catch(e){log('Tx failed: '+e.message,'error');}
-        finally{setEvl(prev=>({...prev,[post.hash]:{...prev[post.hash],tipping:false}}));}
-      };
-
-      const startAgent = async()=>{
-        if(runRef.current) return;
-        runRef.current=true; setRunning(true);
-        setEvl({}); setTxHash({}); setLogs([]); setPosts([]);
-        setStats({scanned:0,approved:0,usdc:0}); setCapErr('');
-        log('🏴‍☠️ TipJar Agent starting…');
-        log('Identity: @'+USERNAME+' · FID '+FID);
-        await new Promise(r=>setTimeout(r,500));
-        let feed=[];
-        try {
-          log('Fetching live Farcaster feed via Neynar…');
-          feed = await fetchFeed();
-          log('✅ Loaded '+feed.length+' live posts','tip');
-        } catch(e){
-          log('Feed error: '+e.message,'error');
-          setRunning(false); runRef.current=false; return;
-        }
-        setPosts(feed);
-        setStats(s=>({...s,scanned:feed.length}));
-        const activeRules = rules.filter(r=>r.active);
-        log('Active rules: '+activeRules.map(r=>r.label).join(' · '));
-        await new Promise(r=>setTimeout(r,400));
-        let approved=0,totalUsdc=0;
-        for(const post of feed){
-          if(!runRef.current) break;
-          const rule = activeRules.find(r=>r.id===post.type);
-          if(!rule){
-            setEvl(prev=>({...prev,[post.hash]:{decision:false,reason:'No active rule matches this post type.'}}));
-            await new Promise(r=>setTimeout(r,100));
-            continue;
-          }
-          log('🔍 Evaluating @'+post.username+' — '+rule.label,'eval');
-          const result = await evalPost(post,rule);
-          setEvl(prev=>({...prev,[post.hash]:result}));
-          if(result.decision){
-            approved++;
-            totalUsdc=+(totalUsdc+parseFloat(rule.reward)).toFixed(2);
-            setStats(s=>({...s,approved,usdc:totalUsdc}));
-            log('✅ @'+post.username+' approved — '+rule.reward+' USDC','tip');
-          } else {
-            log('⏭️  @'+post.username+' skipped');
-          }
-          await new Promise(r=>setTimeout(r,650));
-        }
-        log('🏁 Done · '+approved+' approved · $'+totalUsdc+' USDC queued','tip');
-        setRunning(false); runRef.current=false;
-      };
-
-      const stopAgent  = ()=>{runRef.current=false;setRunning(false);log('⛔ Agent stopped.','error');};
-      const toggleRule = id=>setRules(prev=>prev.map(r=>r.id===id?{...r,active:!r.active}:r));
-      const setReward  = (id,v)=>setRules(prev=>prev.map(r=>r.id===id?{...r,reward:v}:r));
-      const approvedPosts = posts.filter(p=>evl[p.hash]?.decision);
-
-      const tabBtn = (id,label)=>h('button',{
-        onClick:()=>setTab(id),
-        style:{padding:'5px 14px',background:tab===id?'rgba(0,255,136,0.06)':'transparent',border:`1px solid ${tab===id?'#0f3a1f':'#0a0a14'}`,borderRadius:6,color:tab===id?'#00ff88':'#333',fontSize:10,cursor:'pointer',fontFamily:'inherit',textTransform:'uppercase',letterSpacing:0.8}
-      },label);
-
-      return h('div',{style:{minHeight:'100vh',background:'#060610',color:'#d0d0d0',fontFamily:"'DM Mono',monospace",padding:'20px 16px'}},
-        h('div',{style:{maxWidth:700,margin:'0 auto'}},
-
-          // Header
-          h('div',{style:{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:22}},
-            h('div',null,
-              h('div',{style:{fontFamily:'Syne,sans-serif',fontSize:21,fontWeight:800,letterSpacing:'-0.5px'}},
-                '🏴‍☠️ ',h('span',{style:{color:'#00ff88'}},'TipJar'),' Agent'
-              ),
-              h('div',{style:{color:'#333',fontSize:10,marginTop:2}},'@'+USERNAME+' · FID '+FID+' · Base · Neynar · Claude AI')
-            ),
-            h('div',{style:{display:'flex',gap:18}},
-              ...[{l:'Scanned',v:stats.scanned},{l:'Approved',v:stats.approved,c:'#00ff88'},{l:'USDC',v:'$'+stats.usdc,c:'#f0c040'}].map(s=>
-                h('div',{key:s.l,style:{textAlign:'center'}},
-                  h('div',{style:{fontFamily:'Syne,sans-serif',fontSize:19,fontWeight:800,color:s.c||'#aaa'}},s.v),
-                  h('div',{style:{fontSize:9,color:'#333',textTransform:'uppercase',letterSpacing:0.8}},s.l)
-                )
-              )
-            )
-          ),
-
-          // Wallet + Cap
-          h('div',{style:{display:'flex',gap:10,marginBottom:14,flexWrap:'wrap'}},
-            h('button',{onClick:connectWallet,style:{flex:1,minWidth:160,padding:'9px 14px',background:wallet?'rgba(96,192,255,0.08)':'rgba(255,255,255,0.03)',border:`1px solid ${wallet?'#1a3a5a':'#0f0f1a'}`,borderRadius:7,color:wallet?'#60c0ff':'#555',fontSize:12,cursor:'pointer',fontFamily:'inherit',textAlign:'left'}},
-              wallet?'🔒 '+shortAddr(wallet)+' (Base)':'🔌 Connect Wallet for Auto-send'
-            ),
-            h('div',{style:{display:'flex',alignItems:'center',gap:6,background:'rgba(255,255,255,0.02)',border:'1px solid #0f0f1a',borderRadius:7,padding:'9px 12px'}},
-              h('span',{style:{fontSize:11,color:'#444'}},'Daily cap'),
-              h('input',{type:'number',value:dailyCap,min:1,step:1,onChange:e=>setDailyCap(e.target.value),style:{width:50,background:'transparent',border:'1px solid #2a2a3a',borderRadius:4,color:'#f0c040',fontSize:12,padding:'2px 5px',outline:'none',fontFamily:'inherit'}}),
-              h('span',{style:{fontSize:11,color:'#444'}},'USDC')
-            ),
-            spentToday>0 && h('div',{style:{display:'flex',alignItems:'center',padding:'9px 12px',background:'rgba(240,192,64,0.04)',border:'1px solid #2a2a1a',borderRadius:7,fontSize:11,color:'#f0c040'}},'Spent: $'+spentToday)
-          ),
-          capErr && h('div',{style:{color:'#ff6060',fontSize:11,marginBottom:10}},'⛔ '+capErr),
-
-          // Rules
-          h('div',{style:{background:'rgba(255,255,255,0.01)',border:'1px solid #0f0f18',borderRadius:10,padding:14,marginBottom:14}},
-            h('div',{style:{fontSize:10,color:'#2a2a3a',marginBottom:10,textTransform:'uppercase',letterSpacing:1}},'Tipping Rules'),
-            h('div',{style:{display:'grid',gridTemplateColumns:'1fr 1fr',gap:8}},
-              ...rules.map(rule=>h('div',{key:rule.id,style:{background:rule.active?'rgba(0,255,136,0.03)':'rgba(0,0,0,0.2)',border:`1px solid ${rule.active?'#0f3a1f':'#0a0a14'}`,borderRadius:7,padding:'9px 11px',display:'flex',alignItems:'center',gap:8}},
-                h('input',{type:'checkbox',checked:rule.active,onChange:()=>toggleRule(rule.id),style:{accentColor:'#00ff88',width:13,height:13,cursor:'pointer',flexShrink:0}}),
-                h('span',{style:{flex:1,fontSize:11,color:rule.active?'#bbb':'#333'}},rule.label),
-                h('input',{type:'number',value:rule.reward,min:0.1,step:0.1,onChange:e=>setReward(rule.id,e.target.value),style:{width:44,background:'transparent',border:'1px solid #2a2a3a',borderRadius:4,color:'#f0c040',fontSize:11,padding:'2px 4px',textAlign:'right',outline:'none',fontFamily:'inherit'}}),
-                h('span',{style:{fontSize:10,color:'#333'}},'USDC')
-              ))
-            )
-          ),
-
-          // Controls
-          h('div',{style:{display:'flex',gap:8,marginBottom:14}},
-            h('button',{onClick:running?stopAgent:startAgent,style:{flex:1,padding:'11px 18px',background:running?'rgba(255,96,96,0.08)':'linear-gradient(135deg,#00ff88,#00cc55)',color:running?'#ff6060':'#000',border:running?'1px solid #ff606033':'none',borderRadius:8,fontSize:13,fontWeight:700,cursor:'pointer',fontFamily:'inherit',display:'flex',alignItems:'center',justifyContent:'center',gap:8}},
-              running && h('span',{className:'pulse',style:{fontSize:10}},'●'),
-              running?'Stop Agent':'▶  Start Agent — Live Farcaster Feed'
-            ),
-            h('button',{onClick:()=>window.open(TIPJAR_URL,'_blank'),style:{padding:'11px 14px',background:'transparent',border:'1px solid #0f0f1a',borderRadius:8,color:'#444',fontSize:12,cursor:'pointer',fontFamily:'inherit'}},'TipJar ↗')
-          ),
-
-          // Tabs
-          h('div',{style:{display:'flex',gap:2,marginBottom:12}},
-            tabBtn('feed','Feed ('+posts.length+')'),
-            tabBtn('approved','Approved ('+approvedPosts.length+')'),
-            tabBtn('log','Log')
-          ),
-
-          // Content
-          tab==='log' && h(Log,{logs}),
-
-          tab==='feed' && h('div',null,
-            !posts.length && h('div',{style:{textAlign:'center',color:'#1a1a2a',padding:48,fontSize:13}},'Hit Start Agent to pull your live Farcaster feed'),
-            ...posts.map(post=>h(PostCard,{key:post.hash,post,rule:rules.find(r=>r.id===post.type&&r.active),evl:evl[post.hash],txHash:txHash[post.hash],onAutoTip:autoTip,walletConnected:!!wallet}))
-          ),
-
-          tab==='approved' && h('div',null,
-            !approvedPosts.length && h('div',{style:{textAlign:'center',color:'#1a1a2a',padding:48,fontSize:13}},'No approved tips yet'),
-            ...approvedPosts.map(post=>h(PostCard,{key:post.hash,post,rule:rules.find(r=>r.id===post.type&&r.active),evl:evl[post.hash],txHash:txHash[post.hash],onAutoTip:autoTip,walletConnected:!!wallet}))
-          ),
-
-          h('div',{style:{marginTop:24,textAlign:'center',fontSize:10,color:'#111'}},'Live feed via Neynar · AI by Claude · Tips on Base · 🏴‍☠️ Golden Pirate Base')
-        )
-      );
+    let approved=0, totalUsdc=0;
+    for (const post of posts) {
+      if (stopFlag) break;
+      const rule = activeRules.find(r=>r.id===post.type);
+      if (!rule) {
+        evals[post.hash] = {decision:false,reason:'No active rule matches this post type.'};
+        updateCard(post.hash);
+        await sleep(100);
+        continue;
+      }
+      log('🔍 Evaluating @'+post.username+' — '+rule.label,'eval');
+      const result = await evalPost(post,rule);
+      evals[post.hash] = result;
+      updateCard(post.hash);
+      if (result.decision) {
+        approved++;
+        totalUsdc = +(totalUsdc+parseFloat(rule.reward)).toFixed(2);
+        updateStats({approved, usdc:totalUsdc});
+        log('✅ @'+post.username+' approved — '+rule.reward+' USDC','tip');
+      } else {
+        log('⏭️  @'+post.username+' skipped');
+      }
+      await sleep(650);
     }
 
-    ReactDOM.createRoot(document.getElementById('root')).render(h(TipJarAgent,null));
-  </script>
+    log('🏁 Done · '+approved+' approved · $'+totalUsdc+' USDC queued','tip');
+    running=false;
+    document.getElementById('btn-start').className='btn-start';
+    document.getElementById('btn-start').innerHTML='▶  Start Agent — Live Farcaster Feed';
+    if (currentTab==='log') renderLog();
+  }
+
+  const sleep = ms => new Promise(r=>setTimeout(r,ms));
+
+  // ── Init ──────────────────────────────────────────────────────────────────
+  renderRules();
+  renderFeed();
+</script>
+
 </body>
 </html>
