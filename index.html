@@ -1,10 +1,17 @@
 <!DOCTYPE html>
-
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>TipJar Agent 🏴‍☠️</title>
+
+  <!-- Farcaster Mini App meta tag -->
+  <meta property="fc:frame" content='{"version":"next","imageUrl":"https://placehold.co/1200x630/7c5cfc/ffffff?text=TipJar","button":{"title":"Open TipJar","action":{"type":"launch_frame","name":"TipJar","url":"https://tipjar-chi-snowy.vercel.app","splashImageUrl":"https://placehold.co/200x200/0a0a0f/7c5cfc?text=TipJar","splashBackgroundColor":"#0a0a0f"}}}' />
+  <!-- OG fallback -->
+  <meta property="og:title" content="TipJar Agent 🏴‍☠️" />
+  <meta property="og:description" content="AI-powered USDC tipping agent for Farcaster on Base" />
+  <meta property="og:image" content="https://placehold.co/1200x630/7c5cfc/ffffff?text=TipJar" />
+
   <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.2/babel.min.js"></script>
@@ -21,7 +28,11 @@
   </style>
 </head>
 <body>
-  <div id="root"></div>
+  <div id="root">
+    <div style="display:flex;align-items:center;justify-content:center;height:100vh;background:#060610;color:#00ff88;font-family:monospace;font-size:14px;letter-spacing:1px;">
+      🏴‍☠️ Loading…
+    </div>
+  </div>
 
   <script type="text/babel">
     const { useState, useRef, useCallback } = React;
@@ -172,7 +183,6 @@
         setLogs(prev => [...prev.slice(-120), { m, k, t: ts() }]);
       }, []);
 
-      // Wallet connect
       const connectWallet = async () => {
         if (!window.ethereum) { alert('No wallet detected. Install MetaMask or use a Web3 browser.'); return; }
         try {
@@ -194,7 +204,6 @@
         }
       };
 
-      // Fetch live Neynar feed
       const fetchFeed = async () => {
         const res = await fetch(
           `https://api.neynar.com/v2/farcaster/feed?feed_type=following&fid=${FID}&limit=25&include_replies=false`,
@@ -215,7 +224,6 @@
         }));
       };
 
-      // Claude AI evaluation
       const evalPost = async (post, rule) => {
         try {
           const res = await fetch('https://api.anthropic.com/v1/messages', {
@@ -247,7 +255,6 @@ Reply ONLY with raw JSON, no markdown:
         }
       };
 
-      // Auto send USDC via MetaMask
       const autoTip = async (post, rule) => {
         const amt = parseFloat(rule.reward);
         if (spentToday + amt > parseFloat(dailyCap || '10')) {
@@ -274,7 +281,6 @@ Reply ONLY with raw JSON, no markdown:
         }
       };
 
-      // Agent loop
       const startAgent = async () => {
         if (runRef.current) return;
         runRef.current = true;
@@ -336,7 +342,6 @@ Reply ONLY with raw JSON, no markdown:
 
       return (
         <div style={{ minHeight:'100vh', background:'#060610', color:'#d0d0d0', fontFamily:"'DM Mono', monospace", padding:'20px 16px' }}>
-
           <div style={{ maxWidth:700, margin:'0 auto' }}>
 
             {/* Header */}
@@ -486,6 +491,5 @@ Reply ONLY with raw JSON, no markdown:
 
     ReactDOM.createRoot(document.getElementById('root')).render(<TipJarAgent />);
   </script>
-
 </body>
 </html>
