@@ -1,395 +1,491 @@
 <!DOCTYPE html>
+
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0" />
-  <title>TipJar - Send love onchain</title>
-  <meta property="og:title" content="TipJar - Tip creators on Base" />
-  <meta property="og:description" content="Send USDC or ETH tips to Farcaster creators on Base." />
-  <meta property="og:image" content="https://placehold.co/1200x630/7c5cfc/ffffff?text=TipJar" />
-  <meta property="og:url" content="https://tipjar-chi-snowy.vercel.app" />
-  <meta name="fc:miniapp" content='{"version":"1","imageUrl":"https://placehold.co/1200x630/7c5cfc/ffffff?text=TipJar","button":{"title":"Open TipJar","action":{"type":"launch_frame","name":"TipJar","url":"https://tipjar-chi-snowy.vercel.app","splashImageUrl":"https://placehold.co/200x200/0a0a0f/7c5cfc?text=TJ","splashBackgroundColor":"#0a0a0f"}}}'  />
-  <meta name="fc:frame" content="vNext" />
-  <link rel="manifest" href="/.well-known/farcaster.json" />
-  <meta name="fc:frame:image" content="https://placehold.co/1200x630/7c5cfc/ffffff?text=TipJar" />
-  <meta name="fc:frame:button:1" content="Open TipJar" />
-  <meta name="fc:frame:button:1:action" content="launch_frame" />
-  <meta name="fc:frame:button:1:target" content="https://tipjar-chi-snowy.vercel.app" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>TipJar Agent 🏴‍☠️</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.2/babel.min.js"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet" />
   <style>
-    :root {
-      --bg:#0a0a0f;--surface:#13131a;--surface2:#1c1c27;
-      --border:rgba(255,255,255,0.08);--accent:#7c5cfc;
-      --accent2:#fc5c7d;--green:#22d3a5;--text:#f0f0f8;--muted:#6b6b80;
-      --font:-apple-system,BlinkMacSystemFont,"SF Pro Display","Helvetica Neue",Arial,sans-serif;
-      --mono:"SF Mono",SFMono-Regular,ui-monospace,monospace;
-    }
-    *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
-    html,body{height:100%;}
-    body{background:var(--bg);color:var(--text);font-family:var(--font);overflow-x:hidden;}
-    .blob{position:fixed;border-radius:50%;filter:blur(80px);opacity:0.12;pointer-events:none;z-index:0;}
-    .b1{width:350px;height:350px;background:var(--accent);top:-80px;right:-80px;}
-    .b2{width:280px;height:280px;background:var(--accent2);bottom:40px;left:-60px;}
-    .app{position:relative;z-index:1;max-width:420px;margin:0 auto;min-height:100vh;display:flex;flex-direction:column;}
-    .screen{display:none;flex-direction:column;flex:1;padding:20px 16px 32px;}
-    .screen.active{display:flex;animation:fadeUp 0.35s ease both;}
-    @keyframes fadeUp{from{opacity:0;transform:translateY(16px);}to{opacity:1;transform:translateY(0);}}
-    .topbar{display:flex;align-items:center;justify-content:space-between;padding:16px 16px 0;position:relative;z-index:1;}
-    .logo{font-size:20px;font-weight:900;letter-spacing:-0.5px;}
-    .logo span{color:var(--accent2);}
-    .chip{display:flex;align-items:center;gap:8px;background:var(--surface2);border:1px solid var(--border);border-radius:99px;padding:6px 14px 6px 6px;font-size:13px;font-weight:700;cursor:pointer;}
-    .chip img{width:26px;height:26px;border-radius:50%;object-fit:cover;}
-    .av{width:26px;height:26px;border-radius:50%;background:linear-gradient(135deg,var(--accent),var(--accent2));display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;color:#fff;}
-    .overlay{position:fixed;inset:0;background:rgba(0,0,0,0.8);z-index:300;display:none;align-items:flex-end;justify-content:center;}
-    .overlay.open{display:flex;}
-    .modal{background:var(--surface);border:1px solid var(--border);border-radius:24px 24px 0 0;width:100%;max-width:420px;padding:12px 20px 44px;animation:slideUp 0.3s cubic-bezier(0.22,1,0.36,1);}
-    @keyframes slideUp{from{transform:translateY(100%);}to{transform:translateY(0);}}
-    .handle{width:36px;height:4px;background:rgba(255,255,255,0.12);border-radius:99px;margin:0 auto 20px;}
-    .mtitle{font-size:20px;font-weight:800;margin-bottom:6px;}
-    .msub{font-size:13px;color:var(--muted);font-family:var(--mono);margin-bottom:20px;line-height:1.5;}
-    .ainput{background:var(--surface2);border:1px solid var(--border);border-radius:14px;padding:14px 16px;display:flex;align-items:center;gap:10px;margin-bottom:14px;}
-    .ainput input{background:none;border:none;outline:none;color:var(--text);font-family:var(--mono);font-size:13px;flex:1;width:100%;}
-    .ainput input::placeholder{color:var(--muted);}
-    .cbadge{background:rgba(34,211,165,0.1);border:1px solid rgba(34,211,165,0.25);border-radius:14px;padding:14px 16px;margin-bottom:16px;display:none;}
-    .cbadge.show{display:block;}
-    .crow{display:flex;align-items:center;gap:8px;margin-bottom:6px;}
-    .cdot{width:7px;height:7px;border-radius:50%;background:var(--green);}
-    .clbl{font-size:10px;font-weight:800;color:var(--green);font-family:var(--mono);letter-spacing:1px;}
-    .caddr{font-size:12px;font-family:var(--mono);color:var(--text);word-break:break-all;line-height:1.5;}
-    .btnc{width:100%;padding:16px;background:linear-gradient(135deg,var(--accent),var(--accent2));border:none;border-radius:16px;color:#fff;font-family:var(--font);font-size:16px;font-weight:800;cursor:pointer;margin-bottom:10px;}
-    .btnd{width:100%;padding:14px;background:transparent;border:1px solid rgba(252,92,125,0.4);border-radius:16px;color:var(--accent2);font-family:var(--font);font-size:15px;font-weight:700;cursor:pointer;margin-bottom:10px;}
-    .btnx{width:100%;padding:12px;background:transparent;border:none;color:var(--muted);font-family:var(--font);font-size:14px;font-weight:600;cursor:pointer;}
-    .hero{text-align:center;padding:32px 0 28px;}
-    .hicon{width:68px;height:68px;margin:0 auto 16px;background:linear-gradient(135deg,var(--accent),var(--accent2));border-radius:22px;display:flex;align-items:center;justify-content:center;font-size:30px;box-shadow:0 16px 48px rgba(124,92,252,0.4);animation:float 3s ease-in-out infinite;}
-    @keyframes float{0%,100%{transform:translateY(0);}50%{transform:translateY(-7px);}}
-    .hero h1{font-size:26px;font-weight:900;letter-spacing:-0.8px;line-height:1.15;margin-bottom:10px;}
-    .hero h1 em{font-style:normal;color:var(--accent2);}
-    .hero p{color:var(--muted);font-size:14px;font-family:var(--mono);line-height:1.5;}
-    .sgrid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:24px;}
-    .scard{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:12px 8px;text-align:center;}
-    .scard .v{font-size:17px;font-weight:800;color:var(--green);display:block;}
-    .scard .l{font-size:10px;color:var(--muted);font-family:var(--mono);margin-top:2px;display:block;}
-    .agrid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:24px;}
-    .acard{background:var(--surface);border:1px solid var(--border);border-radius:18px;padding:18px 14px;cursor:pointer;transition:transform 0.15s;}
-    .acard:active{transform:scale(0.97);}
-    .acard .ic{font-size:22px;margin-bottom:10px;display:block;}
-    .acard .ct{font-size:14px;font-weight:800;display:block;margin-bottom:4px;}
-    .acard .cd{font-size:11px;color:var(--muted);font-family:var(--mono);line-height:1.4;}
-    .slbl{font-size:10px;font-weight:800;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);margin-bottom:10px;font-family:var(--mono);}
-    .alist{display:flex;flex-direction:column;gap:8px;}
-    .aitem{display:flex;align-items:center;gap:12px;background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:12px 14px;}
-    .aav{width:36px;height:36px;border-radius:50%;background:linear-gradient(135deg,var(--accent),var(--accent2));display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0;}
-    .ai{flex:1;}
-    .an{font-size:13px;font-weight:700;margin-bottom:2px;}
-    .am{font-size:11px;color:var(--muted);font-family:var(--mono);}
-    .aa{font-size:13px;font-weight:800;font-family:var(--mono);}
-    .aa.p{color:var(--green);}
-    .aa.n{color:var(--accent2);}
-    .shdr{display:flex;align-items:center;gap:12px;margin-bottom:24px;}
-    .back{width:38px;height:38px;background:var(--surface2);border:1px solid var(--border);border-radius:12px;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:18px;flex-shrink:0;}
-    .stitle{font-size:21px;font-weight:900;letter-spacing:-0.5px;}
-    .sbox{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:13px 16px;display:flex;align-items:center;gap:10px;margin-bottom:18px;}
-    .sbox input{background:none;border:none;outline:none;color:var(--text);font-family:var(--font);font-size:15px;font-weight:600;flex:1;width:100%;}
-    .sbox input::placeholder{color:var(--muted);font-weight:400;}
-    .rlbl{font-size:10px;font-weight:800;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);margin-bottom:10px;font-family:var(--mono);}
-    .rlist{display:flex;flex-direction:column;gap:8px;margin-bottom:20px;}
-    .ritem{display:flex;align-items:center;gap:12px;background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:12px 14px;cursor:pointer;transition:all 0.15s;}
-    .ritem.sel{border-color:var(--accent);background:rgba(124,92,252,0.08);}
-    .rav{width:40px;height:40px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0;}
-    .ri{flex:1;}
-    .rn{font-size:14px;font-weight:700;margin-bottom:2px;}
-    .rh{font-size:11px;color:var(--muted);font-family:var(--mono);}
-    .ttog{display:flex;background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:4px;margin-bottom:20px;gap:4px;}
-    .tbtn{flex:1;padding:10px;border-radius:10px;border:none;background:none;color:var(--muted);font-family:var(--font);font-size:14px;font-weight:700;cursor:pointer;transition:all 0.2s;}
-    .tbtn.active{background:var(--accent);color:#fff;}
-    .asec{margin-bottom:20px;}
-    .albl{font-size:10px;font-weight:800;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);margin-bottom:10px;font-family:var(--mono);display:block;}
-    .apre{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:10px;}
-    .pbtn{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:12px 4px;color:var(--text);font-family:var(--font);font-size:14px;font-weight:700;cursor:pointer;text-align:center;}
-    .pbtn.active{background:var(--accent);border-color:var(--accent);color:#fff;}
-    .camt{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:13px 16px;display:flex;align-items:center;gap:8px;}
-    .camt .cur{color:var(--muted);font-family:var(--mono);font-size:13px;}
-    .camt input{background:none;border:none;outline:none;color:var(--text);font-family:var(--font);font-size:16px;font-weight:700;flex:1;width:100%;}
-    .camt input::placeholder{color:var(--muted);}
-    .msec{margin-bottom:24px;}
-    .minp{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:13px 16px;width:100%;resize:none;color:var(--text);font-family:var(--font);font-size:14px;outline:none;min-height:80px;}
-    .minp::placeholder{color:var(--muted);}
-    .btnp{width:100%;padding:17px;background:linear-gradient(135deg,var(--accent),var(--accent2));border:none;border-radius:16px;color:#fff;font-family:var(--font);font-size:16px;font-weight:800;cursor:pointer;box-shadow:0 8px 28px rgba(124,92,252,0.35);}
-    .btnp:active{transform:scale(0.98);}
-    .btnp:disabled{opacity:0.5;}
-    .sucsc{display:flex;flex-direction:column;align-items:center;justify-content:center;flex:1;text-align:center;padding:40px 20px;}
-    .sring{width:90px;height:90px;border-radius:50%;background:linear-gradient(135deg,var(--accent),var(--green));display:flex;align-items:center;justify-content:center;font-size:38px;margin-bottom:24px;animation:popIn 0.5s cubic-bezier(0.34,1.56,0.64,1) both;}
-    @keyframes popIn{from{transform:scale(0);opacity:0;}to{transform:scale(1);opacity:1;}}
-    .sttl{font-size:26px;font-weight:900;letter-spacing:-0.8px;margin-bottom:8px;}
-    .ssub{color:var(--muted);font-family:var(--mono);font-size:13px;line-height:1.6;margin-bottom:28px;}
-    .txc{background:var(--surface);border:1px solid var(--border);border-radius:18px;padding:18px;width:100%;margin-bottom:20px;text-align:left;}
-    .txr{display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--border);}
-    .txr:last-child{border-bottom:none;}
-    .txk{font-size:12px;color:var(--muted);font-family:var(--mono);}
-    .txv{font-size:13px;font-weight:700;font-family:var(--mono);}
-    .txv.g{color:var(--green);}
-    .shrc{background:linear-gradient(135deg,rgba(124,92,252,0.15),rgba(252,92,125,0.15));border:1px solid rgba(124,92,252,0.25);border-radius:18px;padding:18px;width:100%;margin-bottom:16px;cursor:pointer;}
-    .shrt{font-size:14px;font-weight:800;margin-bottom:4px;}
-    .shrs{font-size:12px;color:var(--muted);font-family:var(--mono);}
-    .qsec{display:flex;flex-direction:column;align-items:center;gap:16px;margin-bottom:24px;}
-    .qframe{width:180px;height:180px;background:#fff;border-radius:20px;display:flex;align-items:center;justify-content:center;padding:14px;}
-    .lbox{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:13px 16px;display:flex;align-items:center;gap:10px;width:100%;cursor:pointer;}
-    .lurl{flex:1;font-family:var(--mono);font-size:12px;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
-    .toast{position:fixed;bottom:28px;left:50%;transform:translateX(-50%) translateY(20px);background:var(--green);color:#0a0a0f;font-family:var(--font);font-size:13px;font-weight:800;padding:10px 20px;border-radius:99px;opacity:0;transition:all 0.3s ease;pointer-events:none;z-index:400;}
-    .toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
-    .spin{width:18px;height:18px;border:2px solid rgba(255,255,255,0.3);border-top-color:#fff;border-radius:50%;animation:spin 0.7s linear infinite;display:inline-block;vertical-align:middle;margin-right:8px;}
-    @keyframes spin{to{transform:rotate(360deg);}}
-    .ntabs{display:flex;background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:4px;gap:4px;margin-bottom:20px;}
-    .ntab{flex:1;padding:10px;border-radius:10px;border:none;background:none;color:var(--muted);font-family:var(--font);font-size:13px;font-weight:700;cursor:pointer;transition:all 0.2s;}
-    .ntab.active{background:var(--accent);color:#fff;}
-    .tinc{display:flex;flex-direction:column;gap:8px;}
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body { background: #060610; color: #d0d0d0; font-family: 'DM Mono', monospace; }
+    ::-webkit-scrollbar { width: 3px; }
+    ::-webkit-scrollbar-thumb { background: #1a3a2a; border-radius: 2px; }
+    @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
+    @keyframes fadeIn { from{opacity:0;transform:translateY(6px)} to{opacity:1;transform:translateY(0)} }
+    input[type=number]::-webkit-inner-spin-button { opacity: 1; }
+    a { color: #00cc66; }
   </style>
 </head>
 <body>
-<div class="blob b1"></div>
-<div class="blob b2"></div>
+  <div id="root"></div>
 
-<!-- WALLET MODAL -->
-<div class="overlay" id="overlay" onclick="ovClick(event)">
-  <div class="modal">
-    <div class="handle"></div>
-    <div id="sdis">
-      <div class="mtitle">Connect Wallet</div>
-      <div class="msub">Paste your wallet address or ENS name.</div>
-      <div class="ainput"><span style="font-size:18px">&#x1F511;</span><input type="text" id="winput" placeholder="0x... or yourname.eth" /></div>
-      <button class="btnc" onclick="doConnect()">Connect Wallet</button>
-      <button class="btnx" onclick="closeModal()">Cancel</button>
-    </div>
-    <div id="scon" style="display:none">
-      <div class="mtitle">Connected &#x1F7E2;</div>
-      <div class="msub">You are connected on Base network.</div>
-      <div class="cbadge show"><div class="crow"><div class="cdot"></div><span class="clbl">CONNECTED &bull; BASE</span></div><div class="caddr" id="caddr">0x...</div></div>
-      <button class="btnd" onclick="doDisconnect()">Disconnect Wallet</button>
-      <button class="btnx" onclick="closeModal()">Close</button>
-    </div>
-  </div>
-</div>
+  <script type="text/babel">
+    const { useState, useRef, useCallback } = React;
 
-<div class="topbar">
-  <div class="logo">tip<span>jar</span></div>
-  <div class="chip" onclick="openModal()"><div class="av" id="av">?</div><span id="uname">Connect</span></div>
-</div>
+    // ── Config ────────────────────────────────────────────────────────────────
+    const NEYNAR_KEY    = '6B1A7112-1E77-440E-84EA-BED313D7E0B4';
+    const TIPJAR_URL    = 'https://tipjar-chi-snowy.vercel.app';
+    const USERNAME      = 'kennyethbase';
+    const FID           = 1401103;
+    const BASE_CHAIN_ID = '0x2105';
+    const USDC_ADDRESS  = '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913';
 
-<div class="app">
-  <!-- HOME -->
-  <div class="screen active" id="s-home">
-    <div class="hero">
-      <div class="hicon">&#x1F4B8;</div>
-      <h1>Send tips.<br><em>Onchain.</em> Instantly.</h1>
-      <p>Tip Farcaster creators with<br>ETH or USDC on Base.</p>
-    </div>
-    <div class="sgrid">
-      <div class="scard"><span class="v" id="st-sent">3</span><span class="l">Tips Sent</span></div>
-      <div class="scard"><span class="v" id="st-recv">3</span><span class="l">Received</span></div>
-      <div class="scard"><span class="v" id="st-vol">$14</span><span class="l">Volume</span></div>
-    </div>
-    <div class="agrid">
-      <div class="acard" onclick="go('s-send')"><span class="ic">&#x1F680;</span><span class="ct">Send Tip</span><span class="cd">Send ETH or USDC to any creator</span></div>
-      <div class="acard" onclick="go('s-jar')"><span class="ic">&#x1F381;</span><span class="ct">My Jar</span><span class="cd">Your link &amp; incoming tips</span></div>
-    </div>
-    <div class="slbl">Recent Activity</div>
-    <div class="alist">
-      <div class="aitem"><div class="aav">&#x1F98A;</div><div class="ai"><div class="an">vitalik.eth</div><div class="am">Thanks for the support!</div></div><div class="aa p">+2 USDC</div></div>
-      <div class="aitem"><div class="aav">&#x1F438;</div><div class="ai"><div class="an">jessepollak</div><div class="am">Keep building on Base</div></div><div class="aa n">-0.001 ETH</div></div>
-      <div class="aitem"><div class="aav">&#x1F319;</div><div class="ai"><div class="an">dwr.eth</div><div class="am">Love the mini app!</div></div><div class="aa p">+5 USDC</div></div>
-    </div>
-  </div>
+    const PRESET_RULES = [
+      { id: 'mention',    label: 'Mentions Golden Pirate Base', reward: '1',    active: true  },
+      { id: 'recast',     label: 'Recasts your posts',          reward: '0.5',  active: true  },
+      { id: 'engagement', label: 'High engagement (10+ likes)', reward: '2',    active: true  },
+      { id: 'follow',     label: 'New follower',                reward: '0.25', active: false },
+    ];
 
-  <!-- SEND -->
-  <div class="screen" id="s-send">
-    <div class="shdr"><div class="back" onclick="go('s-home')">&#x2190;</div><div class="stitle">Send a Tip</div></div>
-    <div class="rlbl">To</div>
-    <div class="sbox"><span>&#x1F50D;</span><input type="text" id="rsearch" placeholder="Search @username..." oninput="filterR(this.value)" /></div>
-    <div class="rlbl">Suggested</div>
-    <div class="rlist" id="rlist">
-      <div class="ritem" onclick="selR(this,'vitalik.eth','@vitalik')"><div class="rav" style="background:linear-gradient(135deg,#7c5cfc,#fc5c7d)">&#x1F98A;</div><div class="ri"><div class="rn">vitalik.eth</div><div class="rh">@vitalik &middot; 450k</div></div></div>
-      <div class="ritem" onclick="selR(this,'jessepollak','@jessepollak')"><div class="rav" style="background:linear-gradient(135deg,#0052ff,#22d3a5)">&#x1F535;</div><div class="ri"><div class="rn">jessepollak</div><div class="rh">@jessepollak &middot; 98k</div></div></div>
-      <div class="ritem" onclick="selR(this,'dwr.eth','@dwr')"><div class="rav" style="background:linear-gradient(135deg,#fc5c7d,#fcb05c)">&#x1F319;</div><div class="ri"><div class="rn">dwr.eth</div><div class="rh">@dwr &middot; 210k</div></div></div>
-      <div class="ritem" onclick="selR(this,'gakonst.eth','@gakonst')"><div class="rav" style="background:linear-gradient(135deg,#22d3a5,#7c5cfc)">&#x26A1;</div><div class="ri"><div class="rn">gakonst.eth</div><div class="rh">@gakonst &middot; 55k</div></div></div>
-    </div>
-    <div class="ttog"><button class="tbtn active" onclick="selT(this,'USDC')">&#x1F4B5; USDC</button><button class="tbtn" onclick="selT(this,'ETH')">&#x27E0; ETH</button></div>
-    <div class="asec">
-      <span class="albl">Amount</span>
-      <div class="apre"><button class="pbtn" onclick="selA(this,1)">1</button><button class="pbtn active" onclick="selA(this,5)">5</button><button class="pbtn" onclick="selA(this,10)">10</button><button class="pbtn" onclick="selA(this,25)">25</button></div>
-      <div class="camt"><span class="cur" id="cursym">USDC</span><input type="number" id="camt" placeholder="Custom..." oninput="onCA()" /></div>
-    </div>
-    <div class="msec"><span class="albl">Message (optional)</span><textarea class="minp" id="tmsg" placeholder="Say something nice..." maxlength="140"></textarea></div>
-    <button class="btnp" id="sbtn" onclick="doSend()">Send 5 USDC &#x1F680;</button>
-  </div>
+    // ── Helpers ───────────────────────────────────────────────────────────────
+    const ts        = () => new Date().toLocaleTimeString('en-US', { hour12: false });
+    const shortAddr = a => a ? a.slice(0,6) + '…' + a.slice(-4) : '';
 
-  <!-- CONFIRM -->
-  <div class="screen" id="s-confirm">
-    <div class="shdr"><div class="back" onclick="go('s-send')">&#x2190;</div><div class="stitle">Confirm Tip</div></div>
-    <div style="flex:1;display:flex;flex-direction:column;justify-content:center;align-items:center;gap:20px;">
-      <div style="font-size:56px;">&#x1F4B8;</div>
-      <div style="text-align:center;"><div style="font-size:34px;font-weight:900;" id="camt-d">5 USDC</div><div style="color:var(--muted);font-family:var(--mono);font-size:13px;margin-top:6px;">to <span id="crec" style="color:var(--text)">@vitalik</span></div></div>
-      <div class="txc" style="width:100%">
-        <div class="txr"><span class="txk">Network</span><span class="txv">Base &#x1F535;</span></div>
-        <div class="txr"><span class="txk">Gas fee</span><span class="txv g">~$0.001</span></div>
-        <div class="txr"><span class="txk">Token</span><span class="txv" id="ctok">USDC</span></div>
-        <div class="txr"><span class="txk">Message</span><span class="txv" id="cmsg" style="color:var(--muted);font-size:11px;">-</span></div>
-      </div>
-      <button class="btnp" id="cfbtn" onclick="doConfirm()" style="width:100%">Confirm &amp; Send &#x1F680;</button>
-      <button onclick="go('s-send')" style="background:none;border:none;color:var(--muted);font-family:var(--font);font-size:14px;font-weight:600;cursor:pointer;">Cancel</button>
-    </div>
-  </div>
-
-  <!-- SUCCESS -->
-  <div class="screen" id="s-success">
-    <div class="sucsc">
-      <div class="sring">&#x2713;</div>
-      <div class="sttl">Tip Sent! &#x1F389;</div>
-      <div class="ssub">Your tip landed onchain on Base.<br>The creator will see it in their jar.</div>
-      <div class="txc">
-        <div class="txr"><span class="txk">Amount</span><span class="txv g" id="samt">5 USDC</span></div>
-        <div class="txr"><span class="txk">To</span><span class="txv" id="srec">@vitalik</span></div>
-        <div class="txr"><span class="txk">Tx Hash</span><span class="txv" style="color:var(--accent);font-size:11px;" id="stx">0x...</span></div>
-        <div class="txr"><span class="txk">Network</span><span class="txv">Base &#x1F535;</span></div>
-      </div>
-      <div class="shrc" onclick="doShare()"><div class="shrt">&#x1FA84; Share on Farcaster</div><div class="shrs">Post your tip and go viral</div></div>
-      <button class="btnp" onclick="go('s-home')" style="width:100%">Back to Home</button>
-    </div>
-  </div>
-
-  <!-- MY JAR -->
-  <div class="screen" id="s-jar">
-    <div class="shdr"><div class="back" onclick="go('s-home')">&#x2190;</div><div class="stitle">My Tip Jar</div></div>
-    <div class="ntabs"><button class="ntab active" onclick="swTab(this,'tlink')">My Link</button><button class="ntab" onclick="swTab(this,'thist')">History</button></div>
-    <div id="tlink">
-      <div class="qsec"><div class="qframe"><canvas id="qrc" width="152" height="152"></canvas></div><div style="text-align:center;"><div style="font-size:15px;font-weight:800;margin-bottom:4px;" id="mhandle">@yourname</div><div style="font-size:12px;color:var(--muted);font-family:var(--mono);">Share to receive tips</div></div></div>
-      <div class="lbox" onclick="cpLink()"><span>&#x1F517;</span><span class="lurl" id="mlink">tipjar-chi-snowy.vercel.app/tip/yourname</span><span style="font-size:12px;font-weight:700;color:var(--accent)">Copy</span></div>
-      <div style="height:14px;"></div>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:20px;"><div class="scard"><span class="v" id="jtotal">$12.00</span><span class="l">Total Earned</span></div><div class="scard"><span class="v" id="jcount">3</span><span class="l">Tips Received</span></div></div>
-      <button class="btnp" onclick="doShare()">&#x1F4E3; Share My Jar</button>
-    </div>
-    <div id="thist" style="display:none;">
-      <div class="slbl">Incoming Tips</div>
-      <div class="tinc">
-        <div class="aitem"><div class="aav">&#x1F3A9;</div><div class="ai"><div class="an">notdevin.eth</div><div class="am">Great content!</div></div><div class="aa p">+10 USDC</div></div>
-        <div class="aitem"><div class="aav">&#x1F680;</div><div class="ai"><div class="an">horsefacts.eth</div><div class="am">Love your casts!</div></div><div class="aa p">+0.005 ETH</div></div>
-        <div class="aitem"><div class="aav">&#x1F30A;</div><div class="ai"><div class="an">betashop.eth</div><div class="am">-</div></div><div class="aa p">+2 USDC</div></div>
-      </div>
-    </div>
-  </div>
-</div>
-
-<div class="toast" id="toast">Copied!</div>
-
-<script>
-var S={addr:null,user:"yourname",rec:{name:"vitalik.eth",h:"@vitalik"},tok:"USDC",amt:5,sent:3,recv:3,vol:14};
-function go(id){document.querySelectorAll(".screen").forEach(function(s){s.classList.remove("active");});document.getElementById(id).classList.add("active");window.scrollTo(0,0);}
-function openModal(){
-  document.getElementById("overlay").classList.add("open");
-  if(S.addr){
-    document.getElementById("sdis").style.display="none";
-    document.getElementById("scon").style.display="block";
-    document.getElementById("caddr").textContent=S.addr;
-  }else{
-    document.getElementById("sdis").style.display="block";
-    document.getElementById("scon").style.display="none";
-    document.getElementById("winput").value="";
-  }
-}
-function closeModal(){document.getElementById("overlay").classList.remove("open");}
-function ovClick(e){if(e.target.id==="overlay")closeModal();}
-function doConnect(){
-  var v=document.getElementById("winput").value.trim();
-  if(!v){showToast("Enter a wallet address");return;}
-  S.addr=v;
-  var sh=v.length>12?v.slice(0,6)+"..."+v.slice(-4):v;
-  S.user=sh;
-  document.getElementById("uname").textContent=sh;
-  var el=document.getElementById("av");
-  if(el)el.textContent=sh[0].toUpperCase();
-  document.getElementById("mhandle").textContent="@"+sh;
-  document.getElementById("mlink").textContent="tipjar-chi-snowy.vercel.app/tip/"+sh;
-  closeModal();showToast("Wallet connected!");
-}
-function doDisconnect(){
-  S.addr=null;S.user="yourname";
-  document.getElementById("uname").textContent="Connect";
-  var el=document.getElementById("av");
-  if(el){el.textContent="?";el.className="av";}
-  document.getElementById("mhandle").textContent="@yourname";
-  document.getElementById("mlink").textContent="tipjar-chi-snowy.vercel.app/tip/yourname";
-  closeModal();showToast("Wallet disconnected");
-}
-function selR(el,name,h){document.querySelectorAll(".ritem").forEach(function(i){i.classList.remove("sel");});el.classList.add("sel");S.rec={name:name,h:h};updBtn();}
-var allR=[
-  {name:"vitalik.eth",h:"@vitalik",f:"450k",e:"&#x1F98A;",bg:"linear-gradient(135deg,#7c5cfc,#fc5c7d)"},
-  {name:"jessepollak",h:"@jessepollak",f:"98k",e:"&#x1F535;",bg:"linear-gradient(135deg,#0052ff,#22d3a5)"},
-  {name:"dwr.eth",h:"@dwr",f:"210k",e:"&#x1F319;",bg:"linear-gradient(135deg,#fc5c7d,#fcb05c)"},
-  {name:"gakonst.eth",h:"@gakonst",f:"55k",e:"&#x26A1;",bg:"linear-gradient(135deg,#22d3a5,#7c5cfc)"}
-];
-function filterR(q){var f=q?allR.filter(function(r){return r.name.indexOf(q)>-1||r.h.indexOf(q)>-1;}):allR;document.getElementById("rlist").innerHTML=f.map(function(r){return "<div class=\"ritem\" onclick=\"selR(this,'"+r.name+"','"+r.h+"')\">"+"<div class=\"rav\" style=\"background:"+r.bg+"\">"+r.e+"</div>"+"<div class=\"ri\"><div class=\"rn\">"+r.name+"</div><div class=\"rh\">"+r.h+" &middot; "+r.f+"</div></div></div>";}).join("");}
-function selT(btn,t){document.querySelectorAll(".tbtn").forEach(function(b){b.classList.remove("active");});btn.classList.add("active");S.tok=t;document.getElementById("cursym").textContent=t;updBtn();}
-function selA(btn,a){document.querySelectorAll(".pbtn").forEach(function(b){b.classList.remove("active");});btn.classList.add("active");S.amt=a;document.getElementById("camt").value="";updBtn();}
-function onCA(){var v=parseFloat(document.getElementById("camt").value);if(!isNaN(v)&&v>0){document.querySelectorAll(".pbtn").forEach(function(b){b.classList.remove("active");});S.amt=v;updBtn();}}
-function updBtn(){document.getElementById("sbtn").textContent="Send "+S.amt+" "+S.tok+" 🚀";}
-function doSend(){if(!S.addr){openModal();showToast("Connect wallet first");return;}document.getElementById("camt-d").textContent=S.amt+" "+S.tok;document.getElementById("crec").textContent=S.rec.h;document.getElementById("ctok").textContent=S.tok;document.getElementById("cmsg").textContent=document.getElementById("tmsg").value||"-";go("s-confirm");}
-function doConfirm(){
-  var btn=document.getElementById("cfbtn");
-  btn.disabled=true;btn.innerHTML="<span class=\"spin\"></span>Sending...";
-  setTimeout(function(){
-    S.sent++;S.vol+=S.amt;
-    document.getElementById("st-sent").textContent=S.sent;
-    document.getElementById("st-vol").textContent="$"+Math.round(S.vol);
-    document.getElementById("samt").textContent=S.amt+" "+S.tok;
-    document.getElementById("srec").textContent=S.rec.h;
-    document.getElementById("stx").textContent="0x"+rHex(4)+"..."+rHex(4);
-    btn.disabled=false;btn.textContent="Confirm & Send";
-    go("s-success");
-  },2200);
-}
-function doShare(){var t="Just tipped "+S.amt+" "+S.tok+" to "+S.rec.h+" on Base!\n\nSend tips with TipJar \u1F447";window.open("https://warpcast.com/~/compose?text="+encodeURIComponent(t),"_blank");}
-function swTab(btn,id){document.querySelectorAll(".ntab").forEach(function(b){b.classList.remove("active");});btn.classList.add("active");document.getElementById("tlink").style.display=id==="tlink"?"block":"none";document.getElementById("thist").style.display=id==="thist"?"block":"none";}
-function cpLink(){var l="https://tipjar-chi-snowy.vercel.app/tip/"+S.user;navigator.clipboard.writeText(l).then(function(){showToast("Link Copied!");}).catch(function(){showToast("Copied!");});}
-function drawQR(){var c=document.getElementById("qrc");if(!c)return;var x=c.getContext("2d"),s=152,n=21,cs=Math.floor(s/n);x.fillStyle="#fff";x.fillRect(0,0,s,s);function b(r,c){if(r<7&&c<7)return f(r,c);if(r<7&&c>=n-7)return f(r,c-(n-7));if(r>=n-7&&c<7)return f(r-(n-7),c);return((r*31+c*17+r*c)%7)<4?1:0;}function f(r,c){if(r===0||r===6||c===0||c===6)return 1;if(r>=2&&r<=4&&c>=2&&c<=4)return 1;return 0;}x.fillStyle="#0a0a0f";for(var r=0;r<n;r++)for(var c=0;c<n;c++)if(b(r,c)){x.beginPath();x.roundRect(c*cs+1,r*cs+1,cs-2,cs-2,2);x.fill();}}
-function showToast(m){var t=document.getElementById("toast");t.textContent=m;t.classList.add("show");setTimeout(function(){t.classList.remove("show");},2200);}
-function rHex(n){return Array.from({length:n},function(){return Math.floor(Math.random()*16).toString(16);}).join("");}
-window.addEventListener("DOMContentLoaded",function(){drawQR();});
-</script>
-
-<!-- Farcaster SDK at bottom of body -->
-<script type="module">
-  import { sdk } from "https://esm.sh/@farcaster/miniapp-sdk";
-  try {
-    var ctx = await sdk.context;
-    if (ctx && ctx.user) {
-      var u = ctx.user;
-      var addr = (u.verifiedAddresses && u.verifiedAddresses.ethAddresses && u.verifiedAddresses.ethAddresses[0]) || u.custodyAddress || "farcaster";
-      var uname = u.username || "you";
-      var dname = u.displayName || u.username || "You";
-      // Update state
-      window.S.addr = addr;
-      window.S.user = uname;
-      // Update UI
-      document.getElementById("uname").textContent = dname;
-      var el = document.getElementById("av");
-      if (u.pfpUrl && el) {
-        var img = document.createElement("img");
-        img.src = u.pfpUrl; img.alt = uname; img.id = "av";
-        el.replaceWith(img);
-      } else if (el) {
-        el.textContent = dname[0].toUpperCase();
-      }
-      document.getElementById("mhandle").textContent = "@" + uname;
-      document.getElementById("mlink").textContent = "tipjar-chi-snowy.vercel.app/tip/" + uname;
-      // Override openModal to show connected state
-      window.openModal = function() {
-        document.getElementById("overlay").classList.add("open");
-        document.getElementById("sdis").style.display = "none";
-        document.getElementById("scon").style.display = "block";
-        document.getElementById("caddr").textContent = addr;
-      };
+    function encodeTransfer(to, amountUsdc) {
+      const selector   = 'a9059cbb';
+      const paddedAddr = to.replace('0x','').padStart(64,'0');
+      const amount     = BigInt(Math.round(parseFloat(amountUsdc) * 1_000_000));
+      const paddedAmt  = amount.toString(16).padStart(64,'0');
+      return '0x' + selector + paddedAddr + paddedAmt;
     }
-  } catch(e) {}
-  await sdk.actions.ready();
-</script>
+
+    function classifyPost(cast) {
+      const txt = (cast.text || '').toLowerCase();
+      if (txt.includes('golden pirate') || txt.includes('goldenpirate') || txt.includes('gpb')) return 'mention';
+      if ((cast.reactions?.likes_count ?? 0) >= 10) return 'engagement';
+      if ((cast.reactions?.recasts_count ?? 0) > 0)  return 'recast';
+      return 'other';
+    }
+
+    // ── Log component ─────────────────────────────────────────────────────────
+    function Log({ logs }) {
+      const endRef  = useRef(null);
+      const prevLen = useRef(0);
+      if (logs.length !== prevLen.current) {
+        prevLen.current = logs.length;
+        setTimeout(() => endRef.current?.scrollIntoView({ behavior: 'smooth' }), 50);
+      }
+      return (
+        <div style={{ background:'#07070f', border:'1px solid #0f2a0f', borderRadius:8, padding:'12px 14px', height:210, overflowY:'auto', fontFamily:'DM Mono, monospace', fontSize:11.5 }}>
+          {!logs.length && <span style={{ color:'#252535' }}>Agent idle…</span>}
+          {logs.map((l, i) => (
+            <div key={i} style={{ marginBottom:3, color: l.k==='tip'?'#00ff88': l.k==='eval'?'#f0c040': l.k==='error'?'#ff6060': l.k==='wallet'?'#60c0ff':'#3a4a3a' }}>
+              <span style={{ color:'#1a1a2a' }}>[{l.t}]</span> {l.m}
+            </div>
+          ))}
+          <div ref={endRef} />
+        </div>
+      );
+    }
+
+    // ── PostCard component ────────────────────────────────────────────────────
+    function PostCard({ post, rule, evl, txHash, onAutoTip, walletConnected }) {
+      if (!evl) return null;
+      const { decision, reason, tipping } = evl;
+      return (
+        <div style={{
+          background: txHash ? 'rgba(0,255,136,0.05)' : decision ? 'rgba(255,255,255,0.03)' : 'rgba(255,255,255,0.01)',
+          border:`1px solid ${txHash ? '#1a5a2a' : decision ? '#1a2a3a' : '#0f0f18'}`,
+          borderRadius:10, padding:14, marginBottom:8, animation:'fadeIn 0.3s ease'
+        }}>
+          <div style={{ display:'flex', gap:10 }}>
+            {post.pfp_url
+              ? <img src={post.pfp_url} alt="" style={{ width:36, height:36, borderRadius:'50%', objectFit:'cover', flexShrink:0 }} />
+              : <div style={{ width:36, height:36, borderRadius:'50%', background:'#111', display:'flex', alignItems:'center', justifyContent:'center', fontSize:18 }}>👤</div>
+            }
+            <div style={{ flex:1, minWidth:0 }}>
+              <div style={{ display:'flex', justifyContent:'space-between', marginBottom:3 }}>
+                <span style={{ color:'#ddd', fontWeight:600, fontSize:13 }}>{post.display}</span>
+                <span style={{ color:'#333', fontSize:11 }}>@{post.username}</span>
+              </div>
+              <div style={{ color:'#888', fontSize:12, lineHeight:1.5, marginBottom:6, wordBreak:'break-word' }}>
+                {(post.text||'').slice(0,220)}{(post.text||'').length>220?'…':''}
+              </div>
+              <div style={{ display:'flex', gap:12, fontSize:11, color:'#333', marginBottom:8 }}>
+                <span>❤️ {post.likes??0}</span>
+                <span>🔁 {post.recasts??0}</span>
+                {rule && <span style={{ color:'#f0c04088' }}>Rule: {rule.label}</span>}
+              </div>
+              <div style={{ background:'#0a0a12', borderRadius:6, padding:'8px 10px', fontSize:11 }}>
+                {tipping && !txHash && (
+                  <div style={{ color:'#60c0ff', animation:'pulse 1s infinite' }}>⏳ Sending {rule?.reward} USDC on Base…</div>
+                )}
+                {txHash && (
+                  <div style={{ color:'#00ff88' }}>
+                    ✅ Sent {rule?.reward} USDC · <a href={`https://basescan.org/tx/${txHash}`} target="_blank" rel="noreferrer">View on Basescan ↗</a>
+                  </div>
+                )}
+                {!tipping && !txHash && (
+                  <>
+                    <div style={{ color:decision?'#00ff88':'#555', fontWeight:600, marginBottom:3 }}>
+                      {decision ? '✅ Agent approves tip' : '⏭️ Skipped'}
+                    </div>
+                    <div style={{ color:'#555', lineHeight:1.5 }}>{reason}</div>
+                    {decision && rule && (
+                      <div style={{ marginTop:8, display:'flex', gap:8, flexWrap:'wrap' }}>
+                        <button
+                          onClick={() => window.open(`${TIPJAR_URL}?to=${post.username}&amount=${rule.reward}&token=USDC`,'_blank')}
+                          style={{ padding:'5px 12px', background:'linear-gradient(135deg,#00ff88,#00cc66)', color:'#000', border:'none', borderRadius:5, fontSize:11, fontWeight:700, cursor:'pointer' }}>
+                          TipJar ↗ {rule.reward} USDC
+                        </button>
+                        {walletConnected && post.wallet_address && (
+                          <button onClick={() => onAutoTip(post, rule)}
+                            style={{ padding:'5px 12px', background:'linear-gradient(135deg,#60c0ff,#3080cc)', color:'#000', border:'none', borderRadius:5, fontSize:11, fontWeight:700, cursor:'pointer' }}>
+                            Auto-send 🔒
+                          </button>
+                        )}
+                        {walletConnected && !post.wallet_address && (
+                          <span style={{ color:'#444', fontSize:11, lineHeight:2 }}>No verified wallet on Farcaster</span>
+                        )}
+                      </div>
+                    )}
+                  </>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    // ── Main App ──────────────────────────────────────────────────────────────
+    function TipJarAgent() {
+      const [rules, setRules]           = useState(PRESET_RULES);
+      const [running, setRunning]       = useState(false);
+      const [logs, setLogs]             = useState([]);
+      const [posts, setPosts]           = useState([]);
+      const [evl, setEvl]               = useState({});
+      const [txHash, setTxHash]         = useState({});
+      const [stats, setStats]           = useState({ scanned:0, approved:0, usdc:0 });
+      const [tab, setTab]               = useState('feed');
+      const [wallet, setWallet]         = useState(null);
+      const [dailyCap, setDailyCap]     = useState('10');
+      const [spentToday, setSpentToday] = useState(0);
+      const [capErr, setCapErr]         = useState('');
+      const runRef = useRef(false);
+
+      const log = useCallback((m, k='info') => {
+        setLogs(prev => [...prev.slice(-120), { m, k, t: ts() }]);
+      }, []);
+
+      // Wallet connect
+      const connectWallet = async () => {
+        if (!window.ethereum) { alert('No wallet detected. Install MetaMask or use a Web3 browser.'); return; }
+        try {
+          const accounts = await window.ethereum.request({ method:'eth_requestAccounts' });
+          try {
+            await window.ethereum.request({ method:'wallet_switchEthereumChain', params:[{ chainId:BASE_CHAIN_ID }] });
+          } catch(sw) {
+            if (sw.code === 4902) {
+              await window.ethereum.request({
+                method:'wallet_addEthereumChain',
+                params:[{ chainId:BASE_CHAIN_ID, chainName:'Base Mainnet', nativeCurrency:{ name:'ETH', symbol:'ETH', decimals:18 }, rpcUrls:['https://mainnet.base.org'], blockExplorerUrls:['https://basescan.org'] }]
+              });
+            }
+          }
+          setWallet(accounts[0]);
+          log(`🔒 Wallet connected: ${shortAddr(accounts[0])}`, 'wallet');
+        } catch(e) {
+          log('Wallet error: ' + e.message, 'error');
+        }
+      };
+
+      // Fetch live Neynar feed
+      const fetchFeed = async () => {
+        const res = await fetch(
+          `https://api.neynar.com/v2/farcaster/feed?feed_type=following&fid=${FID}&limit=25&include_replies=false`,
+          { headers:{ 'x-api-key':NEYNAR_KEY, 'accept':'application/json' } }
+        );
+        if (!res.ok) throw new Error(`Neynar error ${res.status}`);
+        const data = await res.json();
+        return (data.casts || []).map(c => ({
+          hash:           c.hash,
+          username:       c.author?.username || 'unknown',
+          display:        c.author?.display_name || c.author?.username || 'Unknown',
+          pfp_url:        c.author?.pfp_url || null,
+          text:           c.text || '',
+          likes:          c.reactions?.likes_count  ?? 0,
+          recasts:        c.reactions?.recasts_count ?? 0,
+          wallet_address: c.author?.verified_addresses?.eth_addresses?.[0] || null,
+          type:           classifyPost(c),
+        }));
+      };
+
+      // Claude AI evaluation
+      const evalPost = async (post, rule) => {
+        try {
+          const res = await fetch('https://api.anthropic.com/v1/messages', {
+            method:'POST',
+            headers:{ 'Content-Type':'application/json' },
+            body: JSON.stringify({
+              model:'claude-sonnet-4-20250514',
+              max_tokens:1000,
+              messages:[{
+                role:'user',
+                content:`You are a tipping agent for Golden Pirate Base (@GoldenPirateBase), an NFT gaming project on Base blockchain managed by @${USERNAME}.
+
+Triggered rule: "${rule.label}" — reward: ${rule.reward} USDC
+Post by @${post.username}: "${post.text}"
+Stats: ${post.likes} likes, ${post.recasts} recasts
+
+Should this post receive a USDC tip? Tip genuine community supporters. Skip spam, bots, or low-effort content.
+
+Reply ONLY with raw JSON, no markdown:
+{"decision": true or false, "reason": "one concise sentence"}`
+              }]
+            })
+          });
+          const d   = await res.json();
+          const txt = (d.content?.[0]?.text || '{}').replace(/\`\`\`json|\`\`\`/g,'').trim();
+          return JSON.parse(txt);
+        } catch {
+          return { decision:false, reason:'Evaluation error — skipping to be safe.' };
+        }
+      };
+
+      // Auto send USDC via MetaMask
+      const autoTip = async (post, rule) => {
+        const amt = parseFloat(rule.reward);
+        if (spentToday + amt > parseFloat(dailyCap || '10')) {
+          setCapErr(`Daily cap of $${dailyCap} USDC reached!`);
+          log(`⛔ Daily cap reached — skipping @${post.username}`, 'error');
+          return;
+        }
+        setEvl(prev => ({ ...prev, [post.hash]:{ ...prev[post.hash], tipping:true } }));
+        log(`💸 Requesting signature: ${rule.reward} USDC → @${post.username}…`, 'tip');
+        try {
+          const data = encodeTransfer(post.wallet_address, amt);
+          const tx   = await window.ethereum.request({
+            method:'eth_sendTransaction',
+            params:[{ from:wallet, to:USDC_ADDRESS, data, chainId:BASE_CHAIN_ID }]
+          });
+          setTxHash(prev => ({ ...prev, [post.hash]:tx }));
+          setSpentToday(s => +(s + amt).toFixed(2));
+          setStats(s => ({ ...s, approved:s.approved+1, usdc:+(s.usdc+amt).toFixed(2) }));
+          log(`✅ Sent ${rule.reward} USDC to @${post.username} · ${tx.slice(0,16)}…`, 'tip');
+        } catch(e) {
+          log(`Tx failed: ${e.message}`, 'error');
+        } finally {
+          setEvl(prev => ({ ...prev, [post.hash]:{ ...prev[post.hash], tipping:false } }));
+        }
+      };
+
+      // Agent loop
+      const startAgent = async () => {
+        if (runRef.current) return;
+        runRef.current = true;
+        setRunning(true);
+        setEvl({}); setTxHash({}); setLogs([]); setPosts([]);
+        setStats({ scanned:0, approved:0, usdc:0 }); setCapErr('');
+
+        log('🏴‍☠️ TipJar Agent starting…');
+        log(`Identity: @${USERNAME} · FID ${FID}`);
+        await new Promise(r => setTimeout(r, 500));
+
+        let feed = [];
+        try {
+          log('Fetching live Farcaster feed via Neynar…');
+          feed = await fetchFeed();
+          log(`✅ Loaded ${feed.length} live posts`, 'tip');
+        } catch(e) {
+          log('Feed error: ' + e.message, 'error');
+          setRunning(false); runRef.current = false; return;
+        }
+
+        setPosts(feed);
+        setStats(s => ({ ...s, scanned:feed.length }));
+        const activeRules = rules.filter(r => r.active);
+        log(`Active rules: ${activeRules.map(r => r.label).join(' · ')}`);
+        await new Promise(r => setTimeout(r, 400));
+
+        let approved = 0, totalUsdc = 0;
+        for (const post of feed) {
+          if (!runRef.current) break;
+          const rule = activeRules.find(r => r.id === post.type);
+          if (!rule) {
+            setEvl(prev => ({ ...prev, [post.hash]:{ decision:false, reason:'No active rule matches this post type.' } }));
+            await new Promise(r => setTimeout(r, 100));
+            continue;
+          }
+          log(`🔍 Evaluating @${post.username} — ${rule.label}`, 'eval');
+          const result = await evalPost(post, rule);
+          setEvl(prev => ({ ...prev, [post.hash]:result }));
+          if (result.decision) {
+            approved++;
+            totalUsdc = +(totalUsdc + parseFloat(rule.reward)).toFixed(2);
+            setStats(s => ({ ...s, approved, usdc:totalUsdc }));
+            log(`✅ @${post.username} approved — ${rule.reward} USDC`, 'tip');
+          } else {
+            log(`⏭️  @${post.username} skipped`);
+          }
+          await new Promise(r => setTimeout(r, 650));
+        }
+
+        log(`🏁 Done · ${approved} approved · $${totalUsdc} USDC queued`, 'tip');
+        setRunning(false); runRef.current = false;
+      };
+
+      const stopAgent  = () => { runRef.current = false; setRunning(false); log('⛔ Agent stopped.', 'error'); };
+      const toggleRule = id  => setRules(prev => prev.map(r => r.id===id ? {...r, active:!r.active} : r));
+      const setReward  = (id,v) => setRules(prev => prev.map(r => r.id===id ? {...r, reward:v} : r));
+      const approvedPosts = posts.filter(p => evl[p.hash]?.decision);
+
+      return (
+        <div style={{ minHeight:'100vh', background:'#060610', color:'#d0d0d0', fontFamily:"'DM Mono', monospace", padding:'20px 16px' }}>
+
+          <div style={{ maxWidth:700, margin:'0 auto' }}>
+
+            {/* Header */}
+            <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:22 }}>
+              <div>
+                <div style={{ fontFamily:'Syne, sans-serif', fontSize:21, fontWeight:800, letterSpacing:'-0.5px' }}>
+                  🏴‍☠️ <span style={{ color:'#00ff88' }}>TipJar</span> Agent
+                </div>
+                <div style={{ color:'#333', fontSize:10, marginTop:2 }}>@{USERNAME} · FID {FID} · Base · Neynar · Claude AI</div>
+              </div>
+              <div style={{ display:'flex', gap:18 }}>
+                {[
+                  { l:'Scanned',  v:stats.scanned },
+                  { l:'Approved', v:stats.approved, c:'#00ff88' },
+                  { l:'USDC',     v:`$${stats.usdc}`, c:'#f0c040' },
+                ].map(s => (
+                  <div key={s.l} style={{ textAlign:'center' }}>
+                    <div style={{ fontFamily:'Syne, sans-serif', fontSize:19, fontWeight:800, color:s.c||'#aaa' }}>{s.v}</div>
+                    <div style={{ fontSize:9, color:'#333', textTransform:'uppercase', letterSpacing:0.8 }}>{s.l}</div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Wallet + Cap */}
+            <div style={{ display:'flex', gap:10, marginBottom:14, flexWrap:'wrap' }}>
+              <button onClick={connectWallet} style={{
+                flex:1, minWidth:160, padding:'9px 14px',
+                background: wallet ? 'rgba(96,192,255,0.08)' : 'rgba(255,255,255,0.03)',
+                border:`1px solid ${wallet ? '#1a3a5a' : '#0f0f1a'}`,
+                borderRadius:7, color: wallet ? '#60c0ff' : '#555',
+                fontSize:12, cursor:'pointer', fontFamily:'inherit', textAlign:'left'
+              }}>
+                {wallet ? `🔒 ${shortAddr(wallet)} (Base)` : '🔌 Connect Wallet for Auto-send'}
+              </button>
+              <div style={{ display:'flex', alignItems:'center', gap:6, background:'rgba(255,255,255,0.02)', border:'1px solid #0f0f1a', borderRadius:7, padding:'9px 12px' }}>
+                <span style={{ fontSize:11, color:'#444' }}>Daily cap</span>
+                <input type="number" value={dailyCap} min="1" step="1" onChange={e => setDailyCap(e.target.value)}
+                  style={{ width:50, background:'transparent', border:'1px solid #2a2a3a', borderRadius:4, color:'#f0c040', fontSize:12, padding:'2px 5px', outline:'none', fontFamily:'inherit' }} />
+                <span style={{ fontSize:11, color:'#444' }}>USDC</span>
+              </div>
+              {spentToday > 0 && (
+                <div style={{ display:'flex', alignItems:'center', padding:'9px 12px', background:'rgba(240,192,64,0.04)', border:'1px solid #2a2a1a', borderRadius:7, fontSize:11, color:'#f0c040' }}>
+                  Spent: ${spentToday}
+                </div>
+              )}
+            </div>
+            {capErr && <div style={{ color:'#ff6060', fontSize:11, marginBottom:10 }}>⛔ {capErr}</div>}
+
+            {/* Rules */}
+            <div style={{ background:'rgba(255,255,255,0.01)', border:'1px solid #0f0f18', borderRadius:10, padding:14, marginBottom:14 }}>
+              <div style={{ fontSize:10, color:'#2a2a3a', marginBottom:10, textTransform:'uppercase', letterSpacing:1 }}>Tipping Rules</div>
+              <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:8 }}>
+                {rules.map(rule => (
+                  <div key={rule.id} style={{
+                    background: rule.active ? 'rgba(0,255,136,0.03)' : 'rgba(0,0,0,0.2)',
+                    border:`1px solid ${rule.active ? '#0f3a1f' : '#0a0a14'}`,
+                    borderRadius:7, padding:'9px 11px', display:'flex', alignItems:'center', gap:8
+                  }}>
+                    <input type="checkbox" checked={rule.active} onChange={() => toggleRule(rule.id)}
+                      style={{ accentColor:'#00ff88', width:13, height:13, cursor:'pointer', flexShrink:0 }} />
+                    <span style={{ flex:1, fontSize:11, color:rule.active?'#bbb':'#333' }}>{rule.label}</span>
+                    <input type="number" value={rule.reward} min="0.1" step="0.1" onChange={e => setReward(rule.id, e.target.value)}
+                      style={{ width:44, background:'transparent', border:'1px solid #2a2a3a', borderRadius:4, color:'#f0c040', fontSize:11, padding:'2px 4px', textAlign:'right', outline:'none', fontFamily:'inherit' }} />
+                    <span style={{ fontSize:10, color:'#333' }}>USDC</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Controls */}
+            <div style={{ display:'flex', gap:8, marginBottom:14 }}>
+              <button onClick={running ? stopAgent : startAgent} style={{
+                flex:1, padding:'11px 18px',
+                background: running ? 'rgba(255,96,96,0.08)' : 'linear-gradient(135deg,#00ff88,#00cc55)',
+                color: running ? '#ff6060' : '#000',
+                border: running ? '1px solid #ff606033' : 'none',
+                borderRadius:8, fontSize:13, fontWeight:700, cursor:'pointer', fontFamily:'inherit',
+                display:'flex', alignItems:'center', justifyContent:'center', gap:8
+              }}>
+                {running && <span style={{ animation:'pulse 1s infinite', fontSize:10 }}>●</span>}
+                {running ? 'Stop Agent' : '▶  Start Agent — Live Farcaster Feed'}
+              </button>
+              <button onClick={() => window.open(TIPJAR_URL,'_blank')} style={{
+                padding:'11px 14px', background:'transparent', border:'1px solid #0f0f1a',
+                borderRadius:8, color:'#444', fontSize:12, cursor:'pointer', fontFamily:'inherit'
+              }}>TipJar ↗</button>
+            </div>
+
+            {/* Tabs */}
+            <div style={{ display:'flex', gap:2, marginBottom:12 }}>
+              {[
+                { id:'feed',     label:`Feed (${posts.length})` },
+                { id:'approved', label:`Approved (${approvedPosts.length})` },
+                { id:'log',      label:'Log' },
+              ].map(t => (
+                <button key={t.id} onClick={() => setTab(t.id)} style={{
+                  padding:'5px 14px',
+                  background: tab===t.id ? 'rgba(0,255,136,0.06)' : 'transparent',
+                  border:`1px solid ${tab===t.id ? '#0f3a1f' : '#0a0a14'}`,
+                  borderRadius:6, color: tab===t.id ? '#00ff88' : '#333',
+                  fontSize:10, cursor:'pointer', fontFamily:'inherit', textTransform:'uppercase', letterSpacing:0.8
+                }}>{t.label}</button>
+              ))}
+            </div>
+
+            {/* Tab Content */}
+            {tab === 'log' && <Log logs={logs} />}
+
+            {tab === 'feed' && (
+              <div>
+                {!posts.length && (
+                  <div style={{ textAlign:'center', color:'#1a1a2a', padding:48, fontSize:13 }}>
+                    Hit Start Agent to pull your live Farcaster feed
+                  </div>
+                )}
+                {posts.map(post => (
+                  <PostCard key={post.hash} post={post}
+                    rule={rules.find(r => r.id===post.type && r.active)}
+                    evl={evl[post.hash]} txHash={txHash[post.hash]}
+                    onAutoTip={autoTip} walletConnected={!!wallet} />
+                ))}
+              </div>
+            )}
+
+            {tab === 'approved' && (
+              <div>
+                {!approvedPosts.length && (
+                  <div style={{ textAlign:'center', color:'#1a1a2a', padding:48, fontSize:13 }}>No approved tips yet</div>
+                )}
+                {approvedPosts.map(post => (
+                  <PostCard key={post.hash} post={post}
+                    rule={rules.find(r => r.id===post.type && r.active)}
+                    evl={evl[post.hash]} txHash={txHash[post.hash]}
+                    onAutoTip={autoTip} walletConnected={!!wallet} />
+                ))}
+              </div>
+            )}
+
+            <div style={{ marginTop:24, textAlign:'center', fontSize:10, color:'#111' }}>
+              Live feed via Neynar · AI by Claude · Tips on Base · 🏴‍☠️ Golden Pirate Base
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    ReactDOM.createRoot(document.getElementById('root')).render(<TipJarAgent />);
+  </script>
 
 </body>
 </html>
