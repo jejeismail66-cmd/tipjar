@@ -10,6 +10,10 @@
   <meta property="og:title" content="TipJar Agent 🏴‍☠️" />
   <meta property="og:image" content="https://placehold.co/1200x630/7c5cfc/ffffff?text=TipJar" />
 
+  <!-- Farcaster Mini App SDK — REQUIRED to dismiss splash screen -->
+
+  <script src="https://cdn.jsdelivr.net/npm/@farcaster/frame-sdk/dist/index.min.js"></script>
+
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
     body { background: #060610; color: #d0d0d0; font-family: 'DM Mono', 'Courier New', monospace; padding: 20px 16px; min-height: 100vh; }
@@ -157,6 +161,16 @@
 </div>
 
 <script>
+  // ── Farcaster: dismiss splash screen immediately ──────────────────────────
+  (async () => {
+    try {
+      const sdk = window.frameSDK || window.FrameSDK || window.frame?.sdk;
+      if (sdk && sdk.actions && sdk.actions.ready) {
+        await sdk.actions.ready();
+      }
+    } catch(e) { console.log('Frame SDK ready error:', e); }
+  })();
+
   // ── Config ────────────────────────────────────────────────────────────────
   const NEYNAR_KEY    = '6B1A7112-1E77-440E-84EA-BED313D7E0B4';
   const TIPJAR_URL    = 'https://tipjar-chi-snowy.vercel.app';
