@@ -5,16 +5,14 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>TipJar Agent 🏴‍☠️</title>
 
-  <!-- Farcaster Mini App meta tag -->
   <meta property="fc:frame" content='{"version":"next","imageUrl":"https://placehold.co/1200x630/7c5cfc/ffffff?text=TipJar","button":{"title":"Open TipJar","action":{"type":"launch_frame","name":"TipJar","url":"https://tipjar-chi-snowy.vercel.app","splashImageUrl":"https://placehold.co/200x200/0a0a0f/7c5cfc?text=TipJar","splashBackgroundColor":"#0a0a0f"}}}' />
-  <!-- OG fallback -->
   <meta property="og:title" content="TipJar Agent 🏴‍☠️" />
-  <meta property="og:description" content="AI-powered USDC tipping agent for Farcaster on Base" />
   <meta property="og:image" content="https://placehold.co/1200x630/7c5cfc/ffffff?text=TipJar" />
 
+  <!-- React via CDN — pre-built, no Babel needed -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.2/babel.min.js"></script>
+
   <link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet" />
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -23,8 +21,9 @@
     ::-webkit-scrollbar-thumb { background: #1a3a2a; border-radius: 2px; }
     @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
     @keyframes fadeIn { from{opacity:0;transform:translateY(6px)} to{opacity:1;transform:translateY(0)} }
-    input[type=number]::-webkit-inner-spin-button { opacity: 1; }
     a { color: #00cc66; }
+    .fade { animation: fadeIn 0.3s ease; }
+    .pulse { animation: pulse 1s infinite; }
   </style>
 </head>
 <body>
@@ -34,10 +33,9 @@
     </div>
   </div>
 
-  <script type="text/babel">
-    const { useState, useRef, useCallback } = React;
+  <script>
+    const { useState, useRef, useCallback, createElement: h } = React;
 
-    // ── Config ────────────────────────────────────────────────────────────────
     const NEYNAR_KEY    = '6B1A7112-1E77-440E-84EA-BED313D7E0B4';
     const TIPJAR_URL    = 'https://tipjar-chi-snowy.vercel.app';
     const USERNAME      = 'kennyethbase';
@@ -46,450 +44,337 @@
     const USDC_ADDRESS  = '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913';
 
     const PRESET_RULES = [
-      { id: 'mention',    label: 'Mentions Golden Pirate Base', reward: '1',    active: true  },
-      { id: 'recast',     label: 'Recasts your posts',          reward: '0.5',  active: true  },
-      { id: 'engagement', label: 'High engagement (10+ likes)', reward: '2',    active: true  },
-      { id: 'follow',     label: 'New follower',                reward: '0.25', active: false },
+      { id:'mention',    label:'Mentions Golden Pirate Base', reward:'1',    active:true  },
+      { id:'recast',     label:'Recasts your posts',          reward:'0.5',  active:true  },
+      { id:'engagement', label:'High engagement (10+ likes)', reward:'2',    active:true  },
+      { id:'follow',     label:'New follower',                reward:'0.25', active:false },
     ];
 
-    // ── Helpers ───────────────────────────────────────────────────────────────
-    const ts        = () => new Date().toLocaleTimeString('en-US', { hour12: false });
-    const shortAddr = a => a ? a.slice(0,6) + '…' + a.slice(-4) : '';
+    const ts        = () => new Date().toLocaleTimeString('en-US',{hour12:false});
+    const shortAddr = a => a ? a.slice(0,6)+'…'+a.slice(-4) : '';
 
     function encodeTransfer(to, amountUsdc) {
       const selector   = 'a9059cbb';
       const paddedAddr = to.replace('0x','').padStart(64,'0');
-      const amount     = BigInt(Math.round(parseFloat(amountUsdc) * 1_000_000));
+      const amount     = BigInt(Math.round(parseFloat(amountUsdc)*1_000_000));
       const paddedAmt  = amount.toString(16).padStart(64,'0');
-      return '0x' + selector + paddedAddr + paddedAmt;
+      return '0x'+selector+paddedAddr+paddedAmt;
     }
 
     function classifyPost(cast) {
-      const txt = (cast.text || '').toLowerCase();
-      if (txt.includes('golden pirate') || txt.includes('goldenpirate') || txt.includes('gpb')) return 'mention';
-      if ((cast.reactions?.likes_count ?? 0) >= 10) return 'engagement';
-      if ((cast.reactions?.recasts_count ?? 0) > 0)  return 'recast';
+      const txt = (cast.text||'').toLowerCase();
+      if (txt.includes('golden pirate')||txt.includes('goldenpirate')||txt.includes('gpb')) return 'mention';
+      if ((cast.reactions?.likes_count??0)>=10) return 'engagement';
+      if ((cast.reactions?.recasts_count??0)>0)  return 'recast';
       return 'other';
     }
 
-    // ── Log component ─────────────────────────────────────────────────────────
-    function Log({ logs }) {
-      const endRef  = useRef(null);
-      const prevLen = useRef(0);
-      if (logs.length !== prevLen.current) {
-        prevLen.current = logs.length;
-        setTimeout(() => endRef.current?.scrollIntoView({ behavior: 'smooth' }), 50);
+    // ── Log ──
+    function Log({logs}) {
+      const endRef = useRef(null);
+      const prev   = useRef(0);
+      if (logs.length !== prev.current) {
+        prev.current = logs.length;
+        setTimeout(()=>endRef.current?.scrollIntoView({behavior:'smooth'}),50);
       }
-      return (
-        <div style={{ background:'#07070f', border:'1px solid #0f2a0f', borderRadius:8, padding:'12px 14px', height:210, overflowY:'auto', fontFamily:'DM Mono, monospace', fontSize:11.5 }}>
-          {!logs.length && <span style={{ color:'#252535' }}>Agent idle…</span>}
-          {logs.map((l, i) => (
-            <div key={i} style={{ marginBottom:3, color: l.k==='tip'?'#00ff88': l.k==='eval'?'#f0c040': l.k==='error'?'#ff6060': l.k==='wallet'?'#60c0ff':'#3a4a3a' }}>
-              <span style={{ color:'#1a1a2a' }}>[{l.t}]</span> {l.m}
-            </div>
-          ))}
-          <div ref={endRef} />
-        </div>
+      return h('div',{style:{background:'#07070f',border:'1px solid #0f2a0f',borderRadius:8,padding:'12px 14px',height:210,overflowY:'auto',fontSize:11.5}},
+        !logs.length && h('span',{style:{color:'#252535'}},'Agent idle…'),
+        ...logs.map((l,i)=>h('div',{key:i,style:{marginBottom:3,color:l.k==='tip'?'#00ff88':l.k==='eval'?'#f0c040':l.k==='error'?'#ff6060':l.k==='wallet'?'#60c0ff':'#3a4a3a'}},
+          h('span',{style:{color:'#1a1a2a'}},'['+l.t+'] '),l.m
+        )),
+        h('div',{ref:endRef})
       );
     }
 
-    // ── PostCard component ────────────────────────────────────────────────────
-    function PostCard({ post, rule, evl, txHash, onAutoTip, walletConnected }) {
+    // ── PostCard ──
+    function PostCard({post,rule,evl,txHash,onAutoTip,walletConnected}) {
       if (!evl) return null;
-      const { decision, reason, tipping } = evl;
-      return (
-        <div style={{
-          background: txHash ? 'rgba(0,255,136,0.05)' : decision ? 'rgba(255,255,255,0.03)' : 'rgba(255,255,255,0.01)',
-          border:`1px solid ${txHash ? '#1a5a2a' : decision ? '#1a2a3a' : '#0f0f18'}`,
-          borderRadius:10, padding:14, marginBottom:8, animation:'fadeIn 0.3s ease'
-        }}>
-          <div style={{ display:'flex', gap:10 }}>
-            {post.pfp_url
-              ? <img src={post.pfp_url} alt="" style={{ width:36, height:36, borderRadius:'50%', objectFit:'cover', flexShrink:0 }} />
-              : <div style={{ width:36, height:36, borderRadius:'50%', background:'#111', display:'flex', alignItems:'center', justifyContent:'center', fontSize:18 }}>👤</div>
-            }
-            <div style={{ flex:1, minWidth:0 }}>
-              <div style={{ display:'flex', justifyContent:'space-between', marginBottom:3 }}>
-                <span style={{ color:'#ddd', fontWeight:600, fontSize:13 }}>{post.display}</span>
-                <span style={{ color:'#333', fontSize:11 }}>@{post.username}</span>
-              </div>
-              <div style={{ color:'#888', fontSize:12, lineHeight:1.5, marginBottom:6, wordBreak:'break-word' }}>
-                {(post.text||'').slice(0,220)}{(post.text||'').length>220?'…':''}
-              </div>
-              <div style={{ display:'flex', gap:12, fontSize:11, color:'#333', marginBottom:8 }}>
-                <span>❤️ {post.likes??0}</span>
-                <span>🔁 {post.recasts??0}</span>
-                {rule && <span style={{ color:'#f0c04088' }}>Rule: {rule.label}</span>}
-              </div>
-              <div style={{ background:'#0a0a12', borderRadius:6, padding:'8px 10px', fontSize:11 }}>
-                {tipping && !txHash && (
-                  <div style={{ color:'#60c0ff', animation:'pulse 1s infinite' }}>⏳ Sending {rule?.reward} USDC on Base…</div>
-                )}
-                {txHash && (
-                  <div style={{ color:'#00ff88' }}>
-                    ✅ Sent {rule?.reward} USDC · <a href={`https://basescan.org/tx/${txHash}`} target="_blank" rel="noreferrer">View on Basescan ↗</a>
-                  </div>
-                )}
-                {!tipping && !txHash && (
-                  <>
-                    <div style={{ color:decision?'#00ff88':'#555', fontWeight:600, marginBottom:3 }}>
-                      {decision ? '✅ Agent approves tip' : '⏭️ Skipped'}
-                    </div>
-                    <div style={{ color:'#555', lineHeight:1.5 }}>{reason}</div>
-                    {decision && rule && (
-                      <div style={{ marginTop:8, display:'flex', gap:8, flexWrap:'wrap' }}>
-                        <button
-                          onClick={() => window.open(`${TIPJAR_URL}?to=${post.username}&amount=${rule.reward}&token=USDC`,'_blank')}
-                          style={{ padding:'5px 12px', background:'linear-gradient(135deg,#00ff88,#00cc66)', color:'#000', border:'none', borderRadius:5, fontSize:11, fontWeight:700, cursor:'pointer' }}>
-                          TipJar ↗ {rule.reward} USDC
-                        </button>
-                        {walletConnected && post.wallet_address && (
-                          <button onClick={() => onAutoTip(post, rule)}
-                            style={{ padding:'5px 12px', background:'linear-gradient(135deg,#60c0ff,#3080cc)', color:'#000', border:'none', borderRadius:5, fontSize:11, fontWeight:700, cursor:'pointer' }}>
-                            Auto-send 🔒
-                          </button>
-                        )}
-                        {walletConnected && !post.wallet_address && (
-                          <span style={{ color:'#444', fontSize:11, lineHeight:2 }}>No verified wallet on Farcaster</span>
-                        )}
-                      </div>
-                    )}
-                  </>
-                )}
-              </div>
-            </div>
-          </div>
-        </div>
+      const {decision,reason,tipping} = evl;
+      return h('div',{className:'fade',style:{
+        background:txHash?'rgba(0,255,136,0.05)':decision?'rgba(255,255,255,0.03)':'rgba(255,255,255,0.01)',
+        border:`1px solid ${txHash?'#1a5a2a':decision?'#1a2a3a':'#0f0f18'}`,
+        borderRadius:10,padding:14,marginBottom:8
+      }},
+        h('div',{style:{display:'flex',gap:10}},
+          post.pfp_url
+            ? h('img',{src:post.pfp_url,alt:'',style:{width:36,height:36,borderRadius:'50%',objectFit:'cover',flexShrink:0}})
+            : h('div',{style:{width:36,height:36,borderRadius:'50%',background:'#111',display:'flex',alignItems:'center',justifyContent:'center',fontSize:18}},'👤'),
+          h('div',{style:{flex:1,minWidth:0}},
+            h('div',{style:{display:'flex',justifyContent:'space-between',marginBottom:3}},
+              h('span',{style:{color:'#ddd',fontWeight:600,fontSize:13}},post.display),
+              h('span',{style:{color:'#333',fontSize:11}},'@'+post.username)
+            ),
+            h('div',{style:{color:'#888',fontSize:12,lineHeight:1.5,marginBottom:6,wordBreak:'break-word'}},
+              (post.text||'').slice(0,220)+((post.text||'').length>220?'…':'')
+            ),
+            h('div',{style:{display:'flex',gap:12,fontSize:11,color:'#333',marginBottom:8}},
+              h('span',null,'❤️ '+(post.likes??0)),
+              h('span',null,'🔁 '+(post.recasts??0)),
+              rule && h('span',{style:{color:'#f0c04088'}},'Rule: '+rule.label)
+            ),
+            h('div',{style:{background:'#0a0a12',borderRadius:6,padding:'8px 10px',fontSize:11}},
+              tipping && !txHash && h('div',{className:'pulse',style:{color:'#60c0ff'}},'⏳ Sending '+rule?.reward+' USDC on Base…'),
+              txHash && h('div',{style:{color:'#00ff88'}},
+                '✅ Sent '+rule?.reward+' USDC · ',
+                h('a',{href:'https://basescan.org/tx/'+txHash,target:'_blank',rel:'noreferrer'},'View on Basescan ↗')
+              ),
+              !tipping && !txHash && h(React.Fragment,null,
+                h('div',{style:{color:decision?'#00ff88':'#555',fontWeight:600,marginBottom:3}},
+                  decision?'✅ Agent approves tip':'⏭️ Skipped'
+                ),
+                h('div',{style:{color:'#555',lineHeight:1.5}},reason),
+                decision && rule && h('div',{style:{marginTop:8,display:'flex',gap:8,flexWrap:'wrap'}},
+                  h('button',{
+                    onClick:()=>window.open(`${TIPJAR_URL}?to=${post.username}&amount=${rule.reward}&token=USDC`,'_blank'),
+                    style:{padding:'5px 12px',background:'linear-gradient(135deg,#00ff88,#00cc66)',color:'#000',border:'none',borderRadius:5,fontSize:11,fontWeight:700,cursor:'pointer'}
+                  },'TipJar ↗ '+rule.reward+' USDC'),
+                  walletConnected && post.wallet_address && h('button',{
+                    onClick:()=>onAutoTip(post,rule),
+                    style:{padding:'5px 12px',background:'linear-gradient(135deg,#60c0ff,#3080cc)',color:'#000',border:'none',borderRadius:5,fontSize:11,fontWeight:700,cursor:'pointer'}
+                  },'Auto-send 🔒'),
+                  walletConnected && !post.wallet_address && h('span',{style:{color:'#444',fontSize:11,lineHeight:2}},'No verified wallet on Farcaster')
+                )
+              )
+            )
+          )
+        )
       );
     }
 
-    // ── Main App ──────────────────────────────────────────────────────────────
+    // ── Main App ──
     function TipJarAgent() {
-      const [rules, setRules]           = useState(PRESET_RULES);
-      const [running, setRunning]       = useState(false);
-      const [logs, setLogs]             = useState([]);
-      const [posts, setPosts]           = useState([]);
-      const [evl, setEvl]               = useState({});
-      const [txHash, setTxHash]         = useState({});
-      const [stats, setStats]           = useState({ scanned:0, approved:0, usdc:0 });
-      const [tab, setTab]               = useState('feed');
-      const [wallet, setWallet]         = useState(null);
-      const [dailyCap, setDailyCap]     = useState('10');
-      const [spentToday, setSpentToday] = useState(0);
-      const [capErr, setCapErr]         = useState('');
+      const [rules,setRules]           = useState(PRESET_RULES);
+      const [running,setRunning]       = useState(false);
+      const [logs,setLogs]             = useState([]);
+      const [posts,setPosts]           = useState([]);
+      const [evl,setEvl]               = useState({});
+      const [txHash,setTxHash]         = useState({});
+      const [stats,setStats]           = useState({scanned:0,approved:0,usdc:0});
+      const [tab,setTab]               = useState('feed');
+      const [wallet,setWallet]         = useState(null);
+      const [dailyCap,setDailyCap]     = useState('10');
+      const [spentToday,setSpentToday] = useState(0);
+      const [capErr,setCapErr]         = useState('');
       const runRef = useRef(false);
 
-      const log = useCallback((m, k='info') => {
-        setLogs(prev => [...prev.slice(-120), { m, k, t: ts() }]);
-      }, []);
+      const log = useCallback((m,k='info')=>{
+        setLogs(prev=>[...prev.slice(-120),{m,k,t:ts()}]);
+      },[]);
 
-      const connectWallet = async () => {
-        if (!window.ethereum) { alert('No wallet detected. Install MetaMask or use a Web3 browser.'); return; }
+      const connectWallet = async()=>{
+        if (!window.ethereum){alert('No wallet detected.');return;}
         try {
-          const accounts = await window.ethereum.request({ method:'eth_requestAccounts' });
+          const accounts = await window.ethereum.request({method:'eth_requestAccounts'});
           try {
-            await window.ethereum.request({ method:'wallet_switchEthereumChain', params:[{ chainId:BASE_CHAIN_ID }] });
-          } catch(sw) {
-            if (sw.code === 4902) {
-              await window.ethereum.request({
-                method:'wallet_addEthereumChain',
-                params:[{ chainId:BASE_CHAIN_ID, chainName:'Base Mainnet', nativeCurrency:{ name:'ETH', symbol:'ETH', decimals:18 }, rpcUrls:['https://mainnet.base.org'], blockExplorerUrls:['https://basescan.org'] }]
-              });
+            await window.ethereum.request({method:'wallet_switchEthereumChain',params:[{chainId:BASE_CHAIN_ID}]});
+          } catch(sw){
+            if(sw.code===4902){
+              await window.ethereum.request({method:'wallet_addEthereumChain',params:[{chainId:BASE_CHAIN_ID,chainName:'Base Mainnet',nativeCurrency:{name:'ETH',symbol:'ETH',decimals:18},rpcUrls:['https://mainnet.base.org'],blockExplorerUrls:['https://basescan.org']}]});
             }
           }
           setWallet(accounts[0]);
-          log(`🔒 Wallet connected: ${shortAddr(accounts[0])}`, 'wallet');
-        } catch(e) {
-          log('Wallet error: ' + e.message, 'error');
-        }
+          log('🔒 Wallet connected: '+shortAddr(accounts[0]),'wallet');
+        } catch(e){log('Wallet error: '+e.message,'error');}
       };
 
-      const fetchFeed = async () => {
+      const fetchFeed = async()=>{
         const res = await fetch(
           `https://api.neynar.com/v2/farcaster/feed?feed_type=following&fid=${FID}&limit=25&include_replies=false`,
-          { headers:{ 'x-api-key':NEYNAR_KEY, 'accept':'application/json' } }
+          {headers:{'x-api-key':NEYNAR_KEY,'accept':'application/json'}}
         );
-        if (!res.ok) throw new Error(`Neynar error ${res.status}`);
+        if(!res.ok) throw new Error('Neynar error '+res.status);
         const data = await res.json();
-        return (data.casts || []).map(c => ({
-          hash:           c.hash,
-          username:       c.author?.username || 'unknown',
-          display:        c.author?.display_name || c.author?.username || 'Unknown',
-          pfp_url:        c.author?.pfp_url || null,
-          text:           c.text || '',
-          likes:          c.reactions?.likes_count  ?? 0,
-          recasts:        c.reactions?.recasts_count ?? 0,
-          wallet_address: c.author?.verified_addresses?.eth_addresses?.[0] || null,
-          type:           classifyPost(c),
+        return (data.casts||[]).map(c=>({
+          hash:          c.hash,
+          username:      c.author?.username||'unknown',
+          display:       c.author?.display_name||c.author?.username||'Unknown',
+          pfp_url:       c.author?.pfp_url||null,
+          text:          c.text||'',
+          likes:         c.reactions?.likes_count??0,
+          recasts:       c.reactions?.recasts_count??0,
+          wallet_address:c.author?.verified_addresses?.eth_addresses?.[0]||null,
+          type:          classifyPost(c),
         }));
       };
 
-      const evalPost = async (post, rule) => {
+      const evalPost = async(post,rule)=>{
         try {
-          const res = await fetch('https://api.anthropic.com/v1/messages', {
+          const res = await fetch('https://api.anthropic.com/v1/messages',{
             method:'POST',
-            headers:{ 'Content-Type':'application/json' },
-            body: JSON.stringify({
+            headers:{'Content-Type':'application/json'},
+            body:JSON.stringify({
               model:'claude-sonnet-4-20250514',
               max_tokens:1000,
-              messages:[{
-                role:'user',
-                content:`You are a tipping agent for Golden Pirate Base (@GoldenPirateBase), an NFT gaming project on Base blockchain managed by @${USERNAME}.
-
-Triggered rule: "${rule.label}" — reward: ${rule.reward} USDC
-Post by @${post.username}: "${post.text}"
-Stats: ${post.likes} likes, ${post.recasts} recasts
-
-Should this post receive a USDC tip? Tip genuine community supporters. Skip spam, bots, or low-effort content.
-
-Reply ONLY with raw JSON, no markdown:
-{"decision": true or false, "reason": "one concise sentence"}`
-              }]
+              messages:[{role:'user',content:`You are a tipping agent for Golden Pirate Base (@GoldenPirateBase), an NFT gaming project on Base blockchain managed by @${USERNAME}.\n\nTriggered rule: "${rule.label}" — reward: ${rule.reward} USDC\nPost by @${post.username}: "${post.text}"\nStats: ${post.likes} likes, ${post.recasts} recasts\n\nShould this post receive a USDC tip? Tip genuine community supporters. Skip spam, bots, or low-effort content.\n\nReply ONLY with raw JSON, no markdown:\n{"decision": true or false, "reason": "one concise sentence"}`}]
             })
           });
           const d   = await res.json();
-          const txt = (d.content?.[0]?.text || '{}').replace(/\`\`\`json|\`\`\`/g,'').trim();
+          const txt = (d.content?.[0]?.text||'{}').replace(/```json|```/g,'').trim();
           return JSON.parse(txt);
-        } catch {
-          return { decision:false, reason:'Evaluation error — skipping to be safe.' };
-        }
+        } catch { return {decision:false,reason:'Evaluation error — skipping to be safe.'}; }
       };
 
-      const autoTip = async (post, rule) => {
+      const autoTip = async(post,rule)=>{
         const amt = parseFloat(rule.reward);
-        if (spentToday + amt > parseFloat(dailyCap || '10')) {
-          setCapErr(`Daily cap of $${dailyCap} USDC reached!`);
-          log(`⛔ Daily cap reached — skipping @${post.username}`, 'error');
+        if(spentToday+amt>parseFloat(dailyCap||'10')){
+          setCapErr('Daily cap of $'+dailyCap+' USDC reached!');
+          log('⛔ Daily cap reached — skipping @'+post.username,'error');
           return;
         }
-        setEvl(prev => ({ ...prev, [post.hash]:{ ...prev[post.hash], tipping:true } }));
-        log(`💸 Requesting signature: ${rule.reward} USDC → @${post.username}…`, 'tip');
+        setEvl(prev=>({...prev,[post.hash]:{...prev[post.hash],tipping:true}}));
+        log('💸 Requesting signature: '+rule.reward+' USDC → @'+post.username+'…','tip');
         try {
-          const data = encodeTransfer(post.wallet_address, amt);
-          const tx   = await window.ethereum.request({
-            method:'eth_sendTransaction',
-            params:[{ from:wallet, to:USDC_ADDRESS, data, chainId:BASE_CHAIN_ID }]
-          });
-          setTxHash(prev => ({ ...prev, [post.hash]:tx }));
-          setSpentToday(s => +(s + amt).toFixed(2));
-          setStats(s => ({ ...s, approved:s.approved+1, usdc:+(s.usdc+amt).toFixed(2) }));
-          log(`✅ Sent ${rule.reward} USDC to @${post.username} · ${tx.slice(0,16)}…`, 'tip');
-        } catch(e) {
-          log(`Tx failed: ${e.message}`, 'error');
-        } finally {
-          setEvl(prev => ({ ...prev, [post.hash]:{ ...prev[post.hash], tipping:false } }));
-        }
+          const data = encodeTransfer(post.wallet_address,amt);
+          const tx   = await window.ethereum.request({method:'eth_sendTransaction',params:[{from:wallet,to:USDC_ADDRESS,data,chainId:BASE_CHAIN_ID}]});
+          setTxHash(prev=>({...prev,[post.hash]:tx}));
+          setSpentToday(s=>+(s+amt).toFixed(2));
+          setStats(s=>({...s,approved:s.approved+1,usdc:+(s.usdc+amt).toFixed(2)}));
+          log('✅ Sent '+rule.reward+' USDC to @'+post.username+' · '+tx.slice(0,16)+'…','tip');
+        } catch(e){log('Tx failed: '+e.message,'error');}
+        finally{setEvl(prev=>({...prev,[post.hash]:{...prev[post.hash],tipping:false}}));}
       };
 
-      const startAgent = async () => {
-        if (runRef.current) return;
-        runRef.current = true;
-        setRunning(true);
+      const startAgent = async()=>{
+        if(runRef.current) return;
+        runRef.current=true; setRunning(true);
         setEvl({}); setTxHash({}); setLogs([]); setPosts([]);
-        setStats({ scanned:0, approved:0, usdc:0 }); setCapErr('');
-
+        setStats({scanned:0,approved:0,usdc:0}); setCapErr('');
         log('🏴‍☠️ TipJar Agent starting…');
-        log(`Identity: @${USERNAME} · FID ${FID}`);
-        await new Promise(r => setTimeout(r, 500));
-
-        let feed = [];
+        log('Identity: @'+USERNAME+' · FID '+FID);
+        await new Promise(r=>setTimeout(r,500));
+        let feed=[];
         try {
           log('Fetching live Farcaster feed via Neynar…');
           feed = await fetchFeed();
-          log(`✅ Loaded ${feed.length} live posts`, 'tip');
-        } catch(e) {
-          log('Feed error: ' + e.message, 'error');
-          setRunning(false); runRef.current = false; return;
+          log('✅ Loaded '+feed.length+' live posts','tip');
+        } catch(e){
+          log('Feed error: '+e.message,'error');
+          setRunning(false); runRef.current=false; return;
         }
-
         setPosts(feed);
-        setStats(s => ({ ...s, scanned:feed.length }));
-        const activeRules = rules.filter(r => r.active);
-        log(`Active rules: ${activeRules.map(r => r.label).join(' · ')}`);
-        await new Promise(r => setTimeout(r, 400));
-
-        let approved = 0, totalUsdc = 0;
-        for (const post of feed) {
-          if (!runRef.current) break;
-          const rule = activeRules.find(r => r.id === post.type);
-          if (!rule) {
-            setEvl(prev => ({ ...prev, [post.hash]:{ decision:false, reason:'No active rule matches this post type.' } }));
-            await new Promise(r => setTimeout(r, 100));
+        setStats(s=>({...s,scanned:feed.length}));
+        const activeRules = rules.filter(r=>r.active);
+        log('Active rules: '+activeRules.map(r=>r.label).join(' · '));
+        await new Promise(r=>setTimeout(r,400));
+        let approved=0,totalUsdc=0;
+        for(const post of feed){
+          if(!runRef.current) break;
+          const rule = activeRules.find(r=>r.id===post.type);
+          if(!rule){
+            setEvl(prev=>({...prev,[post.hash]:{decision:false,reason:'No active rule matches this post type.'}}));
+            await new Promise(r=>setTimeout(r,100));
             continue;
           }
-          log(`🔍 Evaluating @${post.username} — ${rule.label}`, 'eval');
-          const result = await evalPost(post, rule);
-          setEvl(prev => ({ ...prev, [post.hash]:result }));
-          if (result.decision) {
+          log('🔍 Evaluating @'+post.username+' — '+rule.label,'eval');
+          const result = await evalPost(post,rule);
+          setEvl(prev=>({...prev,[post.hash]:result}));
+          if(result.decision){
             approved++;
-            totalUsdc = +(totalUsdc + parseFloat(rule.reward)).toFixed(2);
-            setStats(s => ({ ...s, approved, usdc:totalUsdc }));
-            log(`✅ @${post.username} approved — ${rule.reward} USDC`, 'tip');
+            totalUsdc=+(totalUsdc+parseFloat(rule.reward)).toFixed(2);
+            setStats(s=>({...s,approved,usdc:totalUsdc}));
+            log('✅ @'+post.username+' approved — '+rule.reward+' USDC','tip');
           } else {
-            log(`⏭️  @${post.username} skipped`);
+            log('⏭️  @'+post.username+' skipped');
           }
-          await new Promise(r => setTimeout(r, 650));
+          await new Promise(r=>setTimeout(r,650));
         }
-
-        log(`🏁 Done · ${approved} approved · $${totalUsdc} USDC queued`, 'tip');
-        setRunning(false); runRef.current = false;
+        log('🏁 Done · '+approved+' approved · $'+totalUsdc+' USDC queued','tip');
+        setRunning(false); runRef.current=false;
       };
 
-      const stopAgent  = () => { runRef.current = false; setRunning(false); log('⛔ Agent stopped.', 'error'); };
-      const toggleRule = id  => setRules(prev => prev.map(r => r.id===id ? {...r, active:!r.active} : r));
-      const setReward  = (id,v) => setRules(prev => prev.map(r => r.id===id ? {...r, reward:v} : r));
-      const approvedPosts = posts.filter(p => evl[p.hash]?.decision);
+      const stopAgent  = ()=>{runRef.current=false;setRunning(false);log('⛔ Agent stopped.','error');};
+      const toggleRule = id=>setRules(prev=>prev.map(r=>r.id===id?{...r,active:!r.active}:r));
+      const setReward  = (id,v)=>setRules(prev=>prev.map(r=>r.id===id?{...r,reward:v}:r));
+      const approvedPosts = posts.filter(p=>evl[p.hash]?.decision);
 
-      return (
-        <div style={{ minHeight:'100vh', background:'#060610', color:'#d0d0d0', fontFamily:"'DM Mono', monospace", padding:'20px 16px' }}>
-          <div style={{ maxWidth:700, margin:'0 auto' }}>
+      const tabBtn = (id,label)=>h('button',{
+        onClick:()=>setTab(id),
+        style:{padding:'5px 14px',background:tab===id?'rgba(0,255,136,0.06)':'transparent',border:`1px solid ${tab===id?'#0f3a1f':'#0a0a14'}`,borderRadius:6,color:tab===id?'#00ff88':'#333',fontSize:10,cursor:'pointer',fontFamily:'inherit',textTransform:'uppercase',letterSpacing:0.8}
+      },label);
 
-            {/* Header */}
-            <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:22 }}>
-              <div>
-                <div style={{ fontFamily:'Syne, sans-serif', fontSize:21, fontWeight:800, letterSpacing:'-0.5px' }}>
-                  🏴‍☠️ <span style={{ color:'#00ff88' }}>TipJar</span> Agent
-                </div>
-                <div style={{ color:'#333', fontSize:10, marginTop:2 }}>@{USERNAME} · FID {FID} · Base · Neynar · Claude AI</div>
-              </div>
-              <div style={{ display:'flex', gap:18 }}>
-                {[
-                  { l:'Scanned',  v:stats.scanned },
-                  { l:'Approved', v:stats.approved, c:'#00ff88' },
-                  { l:'USDC',     v:`$${stats.usdc}`, c:'#f0c040' },
-                ].map(s => (
-                  <div key={s.l} style={{ textAlign:'center' }}>
-                    <div style={{ fontFamily:'Syne, sans-serif', fontSize:19, fontWeight:800, color:s.c||'#aaa' }}>{s.v}</div>
-                    <div style={{ fontSize:9, color:'#333', textTransform:'uppercase', letterSpacing:0.8 }}>{s.l}</div>
-                  </div>
-                ))}
-              </div>
-            </div>
+      return h('div',{style:{minHeight:'100vh',background:'#060610',color:'#d0d0d0',fontFamily:"'DM Mono',monospace",padding:'20px 16px'}},
+        h('div',{style:{maxWidth:700,margin:'0 auto'}},
 
-            {/* Wallet + Cap */}
-            <div style={{ display:'flex', gap:10, marginBottom:14, flexWrap:'wrap' }}>
-              <button onClick={connectWallet} style={{
-                flex:1, minWidth:160, padding:'9px 14px',
-                background: wallet ? 'rgba(96,192,255,0.08)' : 'rgba(255,255,255,0.03)',
-                border:`1px solid ${wallet ? '#1a3a5a' : '#0f0f1a'}`,
-                borderRadius:7, color: wallet ? '#60c0ff' : '#555',
-                fontSize:12, cursor:'pointer', fontFamily:'inherit', textAlign:'left'
-              }}>
-                {wallet ? `🔒 ${shortAddr(wallet)} (Base)` : '🔌 Connect Wallet for Auto-send'}
-              </button>
-              <div style={{ display:'flex', alignItems:'center', gap:6, background:'rgba(255,255,255,0.02)', border:'1px solid #0f0f1a', borderRadius:7, padding:'9px 12px' }}>
-                <span style={{ fontSize:11, color:'#444' }}>Daily cap</span>
-                <input type="number" value={dailyCap} min="1" step="1" onChange={e => setDailyCap(e.target.value)}
-                  style={{ width:50, background:'transparent', border:'1px solid #2a2a3a', borderRadius:4, color:'#f0c040', fontSize:12, padding:'2px 5px', outline:'none', fontFamily:'inherit' }} />
-                <span style={{ fontSize:11, color:'#444' }}>USDC</span>
-              </div>
-              {spentToday > 0 && (
-                <div style={{ display:'flex', alignItems:'center', padding:'9px 12px', background:'rgba(240,192,64,0.04)', border:'1px solid #2a2a1a', borderRadius:7, fontSize:11, color:'#f0c040' }}>
-                  Spent: ${spentToday}
-                </div>
-              )}
-            </div>
-            {capErr && <div style={{ color:'#ff6060', fontSize:11, marginBottom:10 }}>⛔ {capErr}</div>}
+          // Header
+          h('div',{style:{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:22}},
+            h('div',null,
+              h('div',{style:{fontFamily:'Syne,sans-serif',fontSize:21,fontWeight:800,letterSpacing:'-0.5px'}},
+                '🏴‍☠️ ',h('span',{style:{color:'#00ff88'}},'TipJar'),' Agent'
+              ),
+              h('div',{style:{color:'#333',fontSize:10,marginTop:2}},'@'+USERNAME+' · FID '+FID+' · Base · Neynar · Claude AI')
+            ),
+            h('div',{style:{display:'flex',gap:18}},
+              ...[{l:'Scanned',v:stats.scanned},{l:'Approved',v:stats.approved,c:'#00ff88'},{l:'USDC',v:'$'+stats.usdc,c:'#f0c040'}].map(s=>
+                h('div',{key:s.l,style:{textAlign:'center'}},
+                  h('div',{style:{fontFamily:'Syne,sans-serif',fontSize:19,fontWeight:800,color:s.c||'#aaa'}},s.v),
+                  h('div',{style:{fontSize:9,color:'#333',textTransform:'uppercase',letterSpacing:0.8}},s.l)
+                )
+              )
+            )
+          ),
 
-            {/* Rules */}
-            <div style={{ background:'rgba(255,255,255,0.01)', border:'1px solid #0f0f18', borderRadius:10, padding:14, marginBottom:14 }}>
-              <div style={{ fontSize:10, color:'#2a2a3a', marginBottom:10, textTransform:'uppercase', letterSpacing:1 }}>Tipping Rules</div>
-              <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:8 }}>
-                {rules.map(rule => (
-                  <div key={rule.id} style={{
-                    background: rule.active ? 'rgba(0,255,136,0.03)' : 'rgba(0,0,0,0.2)',
-                    border:`1px solid ${rule.active ? '#0f3a1f' : '#0a0a14'}`,
-                    borderRadius:7, padding:'9px 11px', display:'flex', alignItems:'center', gap:8
-                  }}>
-                    <input type="checkbox" checked={rule.active} onChange={() => toggleRule(rule.id)}
-                      style={{ accentColor:'#00ff88', width:13, height:13, cursor:'pointer', flexShrink:0 }} />
-                    <span style={{ flex:1, fontSize:11, color:rule.active?'#bbb':'#333' }}>{rule.label}</span>
-                    <input type="number" value={rule.reward} min="0.1" step="0.1" onChange={e => setReward(rule.id, e.target.value)}
-                      style={{ width:44, background:'transparent', border:'1px solid #2a2a3a', borderRadius:4, color:'#f0c040', fontSize:11, padding:'2px 4px', textAlign:'right', outline:'none', fontFamily:'inherit' }} />
-                    <span style={{ fontSize:10, color:'#333' }}>USDC</span>
-                  </div>
-                ))}
-              </div>
-            </div>
+          // Wallet + Cap
+          h('div',{style:{display:'flex',gap:10,marginBottom:14,flexWrap:'wrap'}},
+            h('button',{onClick:connectWallet,style:{flex:1,minWidth:160,padding:'9px 14px',background:wallet?'rgba(96,192,255,0.08)':'rgba(255,255,255,0.03)',border:`1px solid ${wallet?'#1a3a5a':'#0f0f1a'}`,borderRadius:7,color:wallet?'#60c0ff':'#555',fontSize:12,cursor:'pointer',fontFamily:'inherit',textAlign:'left'}},
+              wallet?'🔒 '+shortAddr(wallet)+' (Base)':'🔌 Connect Wallet for Auto-send'
+            ),
+            h('div',{style:{display:'flex',alignItems:'center',gap:6,background:'rgba(255,255,255,0.02)',border:'1px solid #0f0f1a',borderRadius:7,padding:'9px 12px'}},
+              h('span',{style:{fontSize:11,color:'#444'}},'Daily cap'),
+              h('input',{type:'number',value:dailyCap,min:1,step:1,onChange:e=>setDailyCap(e.target.value),style:{width:50,background:'transparent',border:'1px solid #2a2a3a',borderRadius:4,color:'#f0c040',fontSize:12,padding:'2px 5px',outline:'none',fontFamily:'inherit'}}),
+              h('span',{style:{fontSize:11,color:'#444'}},'USDC')
+            ),
+            spentToday>0 && h('div',{style:{display:'flex',alignItems:'center',padding:'9px 12px',background:'rgba(240,192,64,0.04)',border:'1px solid #2a2a1a',borderRadius:7,fontSize:11,color:'#f0c040'}},'Spent: $'+spentToday)
+          ),
+          capErr && h('div',{style:{color:'#ff6060',fontSize:11,marginBottom:10}},'⛔ '+capErr),
 
-            {/* Controls */}
-            <div style={{ display:'flex', gap:8, marginBottom:14 }}>
-              <button onClick={running ? stopAgent : startAgent} style={{
-                flex:1, padding:'11px 18px',
-                background: running ? 'rgba(255,96,96,0.08)' : 'linear-gradient(135deg,#00ff88,#00cc55)',
-                color: running ? '#ff6060' : '#000',
-                border: running ? '1px solid #ff606033' : 'none',
-                borderRadius:8, fontSize:13, fontWeight:700, cursor:'pointer', fontFamily:'inherit',
-                display:'flex', alignItems:'center', justifyContent:'center', gap:8
-              }}>
-                {running && <span style={{ animation:'pulse 1s infinite', fontSize:10 }}>●</span>}
-                {running ? 'Stop Agent' : '▶  Start Agent — Live Farcaster Feed'}
-              </button>
-              <button onClick={() => window.open(TIPJAR_URL,'_blank')} style={{
-                padding:'11px 14px', background:'transparent', border:'1px solid #0f0f1a',
-                borderRadius:8, color:'#444', fontSize:12, cursor:'pointer', fontFamily:'inherit'
-              }}>TipJar ↗</button>
-            </div>
+          // Rules
+          h('div',{style:{background:'rgba(255,255,255,0.01)',border:'1px solid #0f0f18',borderRadius:10,padding:14,marginBottom:14}},
+            h('div',{style:{fontSize:10,color:'#2a2a3a',marginBottom:10,textTransform:'uppercase',letterSpacing:1}},'Tipping Rules'),
+            h('div',{style:{display:'grid',gridTemplateColumns:'1fr 1fr',gap:8}},
+              ...rules.map(rule=>h('div',{key:rule.id,style:{background:rule.active?'rgba(0,255,136,0.03)':'rgba(0,0,0,0.2)',border:`1px solid ${rule.active?'#0f3a1f':'#0a0a14'}`,borderRadius:7,padding:'9px 11px',display:'flex',alignItems:'center',gap:8}},
+                h('input',{type:'checkbox',checked:rule.active,onChange:()=>toggleRule(rule.id),style:{accentColor:'#00ff88',width:13,height:13,cursor:'pointer',flexShrink:0}}),
+                h('span',{style:{flex:1,fontSize:11,color:rule.active?'#bbb':'#333'}},rule.label),
+                h('input',{type:'number',value:rule.reward,min:0.1,step:0.1,onChange:e=>setReward(rule.id,e.target.value),style:{width:44,background:'transparent',border:'1px solid #2a2a3a',borderRadius:4,color:'#f0c040',fontSize:11,padding:'2px 4px',textAlign:'right',outline:'none',fontFamily:'inherit'}}),
+                h('span',{style:{fontSize:10,color:'#333'}},'USDC')
+              ))
+            )
+          ),
 
-            {/* Tabs */}
-            <div style={{ display:'flex', gap:2, marginBottom:12 }}>
-              {[
-                { id:'feed',     label:`Feed (${posts.length})` },
-                { id:'approved', label:`Approved (${approvedPosts.length})` },
-                { id:'log',      label:'Log' },
-              ].map(t => (
-                <button key={t.id} onClick={() => setTab(t.id)} style={{
-                  padding:'5px 14px',
-                  background: tab===t.id ? 'rgba(0,255,136,0.06)' : 'transparent',
-                  border:`1px solid ${tab===t.id ? '#0f3a1f' : '#0a0a14'}`,
-                  borderRadius:6, color: tab===t.id ? '#00ff88' : '#333',
-                  fontSize:10, cursor:'pointer', fontFamily:'inherit', textTransform:'uppercase', letterSpacing:0.8
-                }}>{t.label}</button>
-              ))}
-            </div>
+          // Controls
+          h('div',{style:{display:'flex',gap:8,marginBottom:14}},
+            h('button',{onClick:running?stopAgent:startAgent,style:{flex:1,padding:'11px 18px',background:running?'rgba(255,96,96,0.08)':'linear-gradient(135deg,#00ff88,#00cc55)',color:running?'#ff6060':'#000',border:running?'1px solid #ff606033':'none',borderRadius:8,fontSize:13,fontWeight:700,cursor:'pointer',fontFamily:'inherit',display:'flex',alignItems:'center',justifyContent:'center',gap:8}},
+              running && h('span',{className:'pulse',style:{fontSize:10}},'●'),
+              running?'Stop Agent':'▶  Start Agent — Live Farcaster Feed'
+            ),
+            h('button',{onClick:()=>window.open(TIPJAR_URL,'_blank'),style:{padding:'11px 14px',background:'transparent',border:'1px solid #0f0f1a',borderRadius:8,color:'#444',fontSize:12,cursor:'pointer',fontFamily:'inherit'}},'TipJar ↗')
+          ),
 
-            {/* Tab Content */}
-            {tab === 'log' && <Log logs={logs} />}
+          // Tabs
+          h('div',{style:{display:'flex',gap:2,marginBottom:12}},
+            tabBtn('feed','Feed ('+posts.length+')'),
+            tabBtn('approved','Approved ('+approvedPosts.length+')'),
+            tabBtn('log','Log')
+          ),
 
-            {tab === 'feed' && (
-              <div>
-                {!posts.length && (
-                  <div style={{ textAlign:'center', color:'#1a1a2a', padding:48, fontSize:13 }}>
-                    Hit Start Agent to pull your live Farcaster feed
-                  </div>
-                )}
-                {posts.map(post => (
-                  <PostCard key={post.hash} post={post}
-                    rule={rules.find(r => r.id===post.type && r.active)}
-                    evl={evl[post.hash]} txHash={txHash[post.hash]}
-                    onAutoTip={autoTip} walletConnected={!!wallet} />
-                ))}
-              </div>
-            )}
+          // Content
+          tab==='log' && h(Log,{logs}),
 
-            {tab === 'approved' && (
-              <div>
-                {!approvedPosts.length && (
-                  <div style={{ textAlign:'center', color:'#1a1a2a', padding:48, fontSize:13 }}>No approved tips yet</div>
-                )}
-                {approvedPosts.map(post => (
-                  <PostCard key={post.hash} post={post}
-                    rule={rules.find(r => r.id===post.type && r.active)}
-                    evl={evl[post.hash]} txHash={txHash[post.hash]}
-                    onAutoTip={autoTip} walletConnected={!!wallet} />
-                ))}
-              </div>
-            )}
+          tab==='feed' && h('div',null,
+            !posts.length && h('div',{style:{textAlign:'center',color:'#1a1a2a',padding:48,fontSize:13}},'Hit Start Agent to pull your live Farcaster feed'),
+            ...posts.map(post=>h(PostCard,{key:post.hash,post,rule:rules.find(r=>r.id===post.type&&r.active),evl:evl[post.hash],txHash:txHash[post.hash],onAutoTip:autoTip,walletConnected:!!wallet}))
+          ),
 
-            <div style={{ marginTop:24, textAlign:'center', fontSize:10, color:'#111' }}>
-              Live feed via Neynar · AI by Claude · Tips on Base · 🏴‍☠️ Golden Pirate Base
-            </div>
-          </div>
-        </div>
+          tab==='approved' && h('div',null,
+            !approvedPosts.length && h('div',{style:{textAlign:'center',color:'#1a1a2a',padding:48,fontSize:13}},'No approved tips yet'),
+            ...approvedPosts.map(post=>h(PostCard,{key:post.hash,post,rule:rules.find(r=>r.id===post.type&&r.active),evl:evl[post.hash],txHash:txHash[post.hash],onAutoTip:autoTip,walletConnected:!!wallet}))
+          ),
+
+          h('div',{style:{marginTop:24,textAlign:'center',fontSize:10,color:'#111'}},'Live feed via Neynar · AI by Claude · Tips on Base · 🏴‍☠️ Golden Pirate Base')
+        )
       );
     }
 
-    ReactDOM.createRoot(document.getElementById('root')).render(<TipJarAgent />);
+    ReactDOM.createRoot(document.getElementById('root')).render(h(TipJarAgent,null));
   </script>
 </body>
 </html>
