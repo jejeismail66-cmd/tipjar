@@ -10,7 +10,7 @@
   <meta property="og:title" content="TipJar Agent 🏴‍☠️" />
   <meta property="og:image" content="https://placehold.co/1200x630/7c5cfc/ffffff?text=TipJar" />
 
-  <!-- Farcaster Mini App SDK — REQUIRED to dismiss splash screen -->
+  <!-- Farcaster Mini App SDK -->
 
   <script src="https://cdn.jsdelivr.net/npm/@farcaster/frame-sdk/dist/index.min.js"></script>
 
@@ -105,7 +105,7 @@
   <div class="header">
     <div>
       <div class="title">🏴‍☠️ <span>TipJar</span> Agent</div>
-      <div class="subtitle" id="subtitle">@kennyethbase · FID 1401103 · Base · Neynar · Claude AI</div>
+      <div class="subtitle" id="subtitle">Loading your identity…</div>
     </div>
     <div class="stats">
       <div class="stat"><div class="stat-val" id="stat-scanned">0</div><div class="stat-label">Scanned</div></div>
@@ -161,23 +161,15 @@
 </div>
 
 <script>
-  // ── Farcaster: dismiss splash screen immediately ──────────────────────────
-  (async () => {
-    try {
-      const sdk = window.frameSDK || window.FrameSDK || window.frame?.sdk;
-      if (sdk && sdk.actions && sdk.actions.ready) {
-        await sdk.actions.ready();
-      }
-    } catch(e) { console.log('Frame SDK ready error:', e); }
-  })();
-
   // ── Config ────────────────────────────────────────────────────────────────
   const NEYNAR_KEY    = 'D3CC0373-EAF4-4EB7-A1A5-FF489CFCED3E';
   const TIPJAR_URL    = 'https://tipjar-chi-snowy.vercel.app';
-  const USERNAME      = 'kennyethbase';
-  const FID           = 1401103;
   const BASE_CHAIN_ID = '0x2105';
   const USDC_ADDRESS  = '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913';
+
+  // ── Dynamic user (populated from Frame SDK) ───────────────────────────────
+  let currentFID      = 1401103;
+  let currentUsername = 'kennyethbase';
 
   // ── State ─────────────────────────────────────────────────────────────────
   let rules = [
@@ -186,19 +178,49 @@
     { id:'engagement', label:'High engagement (10+ likes)', reward:'2',    active:true  },
     { id:'follow',     label:'New follower',                reward:'0.25', active:false },
   ];
-  let running     = false;
-  let stopFlag    = false;
-  let wallet      = null;
-  let spentToday  = 0;
-  let posts       = [];
-  let evals       = {};   // hash -> {decision, reason, tipping}
-  let txHashes    = {};   // hash -> txHash string
-  let currentTab  = 'feed';
+  let running    = false;
+  let stopFlag   = false;
+  let wallet     = null;
+  let spentToday = 0;
+  let posts      = [];
+  let evals      = {};
+  let txHashes   = {};
+  let currentTab = 'feed';
+  let logLines   = [];
+  let stats      = {scanned:0, approved:0, usdc:0};
 
-  // ── Render rules ─────────────────────────────────────────────────────────
+  // ── Init: get viewer identity from Frame SDK then dismiss splash ───────────
+  (async () => {
+    try {
+      const sdk = window.frameSDK || window.FrameSDK || window.frame?.sdk || window.sdk || null;
+      if (sdk) {
+        let ctx = null;
+        try { ctx = await sdk.context; } catch(e) {}
+        if (!ctx) { try { ctx = await sdk.getContext?.(); } catch(e) {} }
+
+        if (ctx && ctx.user && ctx.user.fid) {
+          currentFID      = ctx.user.fid;
+          currentUsername = ctx.user.username || ('fid' + ctx.user.fid);
+          log('👤 Logged in as @' + currentUsername + ' · FID ' + currentFID, 'wallet');
+        }
+
+        try {
+          if (sdk.actions?.ready) await sdk.actions.ready();
+        } catch(e) { console.log('ready() error:', e); }
+      }
+    } catch(e) { console.log('Frame SDK init error:', e); }
+
+    document.getElementById('subtitle').textContent =
+      '@' + currentUsername + ' · FID ' + currentFID + ' · Base · Neynar · Claude AI';
+
+    renderRules();
+    renderFeed();
+  })();
+
+  // ── Render rules ──────────────────────────────────────────────────────────
   function renderRules() {
     const grid = document.getElementById('rules-grid');
-    grid.innerHTML = rules.map((r,i) => `
+    grid.innerHTML = rules.map(r => `
       <div class="rule-item ${r.active?'active':''}" id="rule-${r.id}">
         <input type="checkbox" ${r.active?'checked':''} style="accent-color:#00ff88;width:13px;height:13px;cursor:pointer;flex-shrink:0" onchange="toggleRule('${r.id}')"/>
         <span class="rule-label">${r.label}</span>
@@ -207,13 +229,8 @@
       </div>`).join('');
   }
 
-  function toggleRule(id) {
-    rules = rules.map(r => r.id===id ? {...r, active:!r.active} : r);
-    renderRules();
-  }
-  function setReward(id, v) {
-    rules = rules.map(r => r.id===id ? {...r, reward:v} : r);
-  }
+  function toggleRule(id) { rules = rules.map(r => r.id===id ? {...r,active:!r.active} : r); renderRules(); }
+  function setReward(id,v) { rules = rules.map(r => r.id===id ? {...r,reward:v} : r); }
 
   // ── Helpers ───────────────────────────────────────────────────────────────
   const ts        = () => new Date().toLocaleTimeString('en-US',{hour12:false});
@@ -236,7 +253,6 @@
   }
 
   // ── Log ───────────────────────────────────────────────────────────────────
-  let logLines = [];
   function log(m, k='info') {
     logLines.push({m,k,t:ts()});
     if (logLines.length > 120) logLines = logLines.slice(-120);
@@ -245,17 +261,16 @@
   function renderLog() {
     const box = document.getElementById('log-box');
     if (!box) return;
-    const colorMap = {tip:'#00ff88',eval:'#f0c040',error:'#ff6060',wallet:'#60c0ff',info:'#3a4a3a'};
+    const c = {tip:'#00ff88',eval:'#f0c040',error:'#ff6060',wallet:'#60c0ff',info:'#3a4a3a'};
     box.innerHTML = logLines.length
-      ? logLines.map(l=>`<div class="log-line" style="color:${colorMap[l.k]||'#3a4a3a'}"><span class="log-time">[${l.t}]</span> ${l.m}</div>`).join('')
+      ? logLines.map(l=>`<div class="log-line" style="color:${c[l.k]||'#3a4a3a'}"><span class="log-time">[${l.t}]</span> ${l.m}</div>`).join('')
       : '<span class="log-idle">Agent idle…</span>';
     box.scrollTop = box.scrollHeight;
   }
 
   // ── Stats ─────────────────────────────────────────────────────────────────
-  let stats = {scanned:0, approved:0, usdc:0};
   function updateStats(s) {
-    stats = {...stats, ...s};
+    stats = {...stats,...s};
     document.getElementById('stat-scanned').textContent  = stats.scanned;
     document.getElementById('stat-approved').textContent = stats.approved;
     document.getElementById('stat-usdc').textContent     = '$'+stats.usdc;
@@ -275,15 +290,13 @@
 
   // ── Post card HTML ────────────────────────────────────────────────────────
   function postCardHTML(post) {
-    const evl   = evals[post.hash];
-    const tx    = txHashes[post.hash];
-    const rule  = rules.find(r=>r.id===post.type && r.active);
+    const evl  = evals[post.hash];
+    const tx   = txHashes[post.hash];
+    const rule = rules.find(r=>r.id===post.type&&r.active);
     if (!evl) return `
       <div class="post-card" id="card-${post.hash}">
         <div class="post-inner">
-          ${post.pfp_url
-            ? `<img class="post-avatar" src="${post.pfp_url}" alt="" />`
-            : `<div class="post-avatar">👤</div>`}
+          ${post.pfp_url?`<img class="post-avatar" src="${post.pfp_url}" alt=""/>`:`<div class="post-avatar">👤</div>`}
           <div class="post-body">
             <div class="post-top"><span class="post-display">${post.display}</span><span class="post-username">@${post.username}</span></div>
             <div class="post-text">${(post.text||'').slice(0,220)}${(post.text||'').length>220?'…':''}</div>
@@ -293,36 +306,33 @@
         </div>
       </div>`;
 
-    const {decision, reason, tipping} = evl;
+    const {decision,reason,tipping} = evl;
     const cardClass = tx?'tipped':decision?'approved':'';
-    const resultHTML = tipping && !tx
+    const resultHTML = tipping&&!tx
       ? `<div class="result-sending">⏳ Sending ${rule?.reward} USDC on Base…</div>`
       : tx
       ? `<div class="result-sent">✅ Sent ${rule?.reward} USDC · <a href="https://basescan.org/tx/${tx}" target="_blank">View on Basescan ↗</a></div>`
       : `<div class="result-label ${decision?'yes':'no'}">${decision?'✅ Agent approves tip':'⏭️ Skipped'}</div>
          <div class="result-reason">${reason||''}</div>
-         ${decision && rule ? `
+         ${decision&&rule?`
            <div class="result-actions">
              <button class="btn-tipjar-action" onclick="window.open('${TIPJAR_URL}?to=${post.username}&amount=${rule.reward}&token=USDC','_blank')">TipJar ↗ ${rule.reward} USDC</button>
-             ${wallet && post.wallet_address
-               ? `<button class="btn-autosend" onclick="autoTip('${post.hash}')">Auto-send 🔒</button>`
-               : wallet && !post.wallet_address
-               ? `<span class="no-wallet-msg">No verified wallet on Farcaster</span>`
-               : ''}
-           </div>` : ''}`;
+             ${wallet&&post.wallet_address
+               ?`<button class="btn-autosend" onclick="autoTip('${post.hash}')">Auto-send 🔒</button>`
+               :wallet&&!post.wallet_address
+               ?`<span class="no-wallet-msg">No verified wallet on Farcaster</span>`
+               :''}
+           </div>`:''}`;
 
     return `
       <div class="post-card ${cardClass}" id="card-${post.hash}">
         <div class="post-inner">
-          ${post.pfp_url
-            ? `<img class="post-avatar" src="${post.pfp_url}" alt="" />`
-            : `<div class="post-avatar">👤</div>`}
+          ${post.pfp_url?`<img class="post-avatar" src="${post.pfp_url}" alt=""/>`:`<div class="post-avatar">👤</div>`}
           <div class="post-body">
             <div class="post-top"><span class="post-display">${post.display}</span><span class="post-username">@${post.username}</span></div>
             <div class="post-text">${(post.text||'').slice(0,220)}${(post.text||'').length>220?'…':''}</div>
             <div class="post-meta">
-              <span>❤️ ${post.likes??0}</span>
-              <span>🔁 ${post.recasts??0}</span>
+              <span>❤️ ${post.likes??0}</span><span>🔁 ${post.recasts??0}</span>
               ${rule?`<span class="post-rule">Rule: ${rule.label}</span>`:''}
             </div>
             <div class="post-result">${resultHTML}</div>
@@ -334,84 +344,77 @@
   function renderFeed() {
     const el = document.getElementById('content-feed');
     document.getElementById('tab-feed').textContent = `Feed (${posts.length})`;
-    el.innerHTML = posts.length
-      ? posts.map(postCardHTML).join('')
-      : '<div class="feed-empty">Hit Start Agent to pull your live Farcaster feed</div>';
+    el.innerHTML = posts.length ? posts.map(postCardHTML).join('') : '<div class="feed-empty">Hit Start Agent to pull your live Farcaster feed</div>';
   }
 
   function renderApproved() {
     const approved = posts.filter(p=>evals[p.hash]?.decision);
     const el = document.getElementById('content-approved');
     document.getElementById('tab-approved').textContent = `Approved (${approved.length})`;
-    el.innerHTML = approved.length
-      ? approved.map(postCardHTML).join('')
-      : '<div class="feed-empty">No approved tips yet</div>';
+    el.innerHTML = approved.length ? approved.map(postCardHTML).join('') : '<div class="feed-empty">No approved tips yet</div>';
   }
 
   function updateCard(hash) {
     const card = document.getElementById('card-'+hash);
     const post = posts.find(p=>p.hash===hash);
-    if (card && post) card.outerHTML = postCardHTML(post);
-    // re-grab after outerHTML replace
+    if (card&&post) card.outerHTML = postCardHTML(post);
     document.getElementById('tab-approved').textContent = `Approved (${posts.filter(p=>evals[p.hash]?.decision).length})`;
   }
 
   // ── Wallet ────────────────────────────────────────────────────────────────
   async function connectWallet() {
-    if (!window.ethereum) { alert('No wallet detected. Use a Web3 browser.'); return; }
     try {
-      const accounts = await window.ethereum.request({method:'eth_requestAccounts'});
-      try {
-        await window.ethereum.request({method:'wallet_switchEthereumChain',params:[{chainId:BASE_CHAIN_ID}]});
-      } catch(sw) {
-        if (sw.code===4902) {
-          await window.ethereum.request({method:'wallet_addEthereumChain',params:[{chainId:BASE_CHAIN_ID,chainName:'Base Mainnet',nativeCurrency:{name:'ETH',symbol:'ETH',decimals:18},rpcUrls:['https://mainnet.base.org'],blockExplorerUrls:['https://basescan.org']}]});
-        }
+      const sdk = window.frameSDK||window.FrameSDK||window.frame?.sdk||window.sdk;
+      let accounts = null;
+      if (sdk&&sdk.wallet) {
+        accounts = await sdk.wallet.ethProvider.request({method:'eth_requestAccounts'});
+      } else if (window.ethereum) {
+        accounts = await window.ethereum.request({method:'eth_requestAccounts'});
+        try { await window.ethereum.request({method:'wallet_switchEthereumChain',params:[{chainId:BASE_CHAIN_ID}]}); }
+        catch(sw) { if(sw.code===4902) await window.ethereum.request({method:'wallet_addEthereumChain',params:[{chainId:BASE_CHAIN_ID,chainName:'Base Mainnet',nativeCurrency:{name:'ETH',symbol:'ETH',decimals:18},rpcUrls:['https://mainnet.base.org'],blockExplorerUrls:['https://basescan.org']}]}); }
+      } else { alert('No wallet available.'); return; }
+      if (accounts&&accounts[0]) {
+        wallet = accounts[0];
+        const btn = document.getElementById('btn-wallet');
+        btn.textContent = '🔒 '+shortAddr(wallet)+' (Base)';
+        btn.classList.add('connected');
+        log('🔒 Wallet connected: '+shortAddr(wallet),'wallet');
       }
-      wallet = accounts[0];
-      const btn = document.getElementById('btn-wallet');
-      btn.textContent = '🔒 '+shortAddr(wallet)+' (Base)';
-      btn.classList.add('connected');
-      log('🔒 Wallet connected: '+shortAddr(wallet),'wallet');
     } catch(e) { log('Wallet error: '+e.message,'error'); }
   }
 
   // ── Auto-tip ──────────────────────────────────────────────────────────────
   async function autoTip(hash) {
     const post = posts.find(p=>p.hash===hash);
-    const rule = rules.find(r=>r.id===post.type&&r.active);
+    const rule = rules.find(r=>r.id===post?.type&&r.active);
     if (!post||!rule) return;
-    const amt  = parseFloat(rule.reward);
-    const cap  = parseFloat(document.getElementById('daily-cap').value||'10');
+    const amt = parseFloat(rule.reward);
+    const cap = parseFloat(document.getElementById('daily-cap').value||'10');
     if (spentToday+amt>cap) {
       document.getElementById('cap-err').textContent='⛔ Daily cap of $'+cap+' USDC reached!';
       document.getElementById('cap-err').style.display='block';
-      log('⛔ Daily cap reached — skipping @'+post.username,'error');
-      return;
+      log('⛔ Daily cap reached','error'); return;
     }
-    evals[hash] = {...evals[hash], tipping:true};
-    updateCard(hash);
-    log('💸 Requesting signature: '+rule.reward+' USDC → @'+post.username+'…','tip');
+    evals[hash]={...evals[hash],tipping:true}; updateCard(hash);
+    log('💸 Sending '+rule.reward+' USDC → @'+post.username,'tip');
     try {
-      const data = encodeTransfer(post.wallet_address, amt);
-      const tx   = await window.ethereum.request({method:'eth_sendTransaction',params:[{from:wallet,to:USDC_ADDRESS,data,chainId:BASE_CHAIN_ID}]});
-      txHashes[hash] = tx;
-      spentToday = +(spentToday+amt).toFixed(2);
-      document.getElementById('spent-val').textContent = spentToday;
+      const sdk = window.frameSDK||window.FrameSDK||window.frame?.sdk||window.sdk;
+      const provider = sdk?.wallet?.ethProvider||window.ethereum;
+      const data = encodeTransfer(post.wallet_address,amt);
+      const tx   = await provider.request({method:'eth_sendTransaction',params:[{from:wallet,to:USDC_ADDRESS,data,chainId:BASE_CHAIN_ID}]});
+      txHashes[hash]=tx; spentToday=+(spentToday+amt).toFixed(2);
+      document.getElementById('spent-val').textContent=spentToday;
       document.getElementById('spent-box').style.display='flex';
-      updateStats({approved:stats.approved+1, usdc:+(stats.usdc+amt).toFixed(2)});
-      log('✅ Sent '+rule.reward+' USDC to @'+post.username+' · '+tx.slice(0,16)+'…','tip');
+      updateStats({approved:stats.approved+1,usdc:+(stats.usdc+amt).toFixed(2)});
+      log('✅ Sent '+rule.reward+' USDC to @'+post.username,'tip');
     } catch(e) { log('Tx failed: '+e.message,'error'); }
-    finally {
-      evals[hash] = {...evals[hash], tipping:false};
-      updateCard(hash);
-    }
+    finally { evals[hash]={...evals[hash],tipping:false}; updateCard(hash); }
   }
 
-  // ── Fetch feed ────────────────────────────────────────────────────────────
+  // ── Fetch feed (viewer's FID) ─────────────────────────────────────────────
   async function fetchFeed() {
     const res = await fetch(
-      `https://api.neynar.com/v2/farcaster/feed?feed_type=following&fid=${FID}&limit=25&include_replies=false`,
+      `https://api.neynar.com/v2/farcaster/feed?feed_type=following&fid=${currentFID}&limit=25&include_replies=false`,
       {headers:{'x-api-key':NEYNAR_KEY,'accept':'application/json'}}
     );
     if (!res.ok) throw new Error('Neynar error '+res.status);
@@ -430,7 +433,7 @@
   }
 
   // ── Claude eval ───────────────────────────────────────────────────────────
-  async function evalPost(post, rule) {
+  async function evalPost(post,rule) {
     try {
       const res = await fetch('https://api.anthropic.com/v1/messages',{
         method:'POST',
@@ -438,7 +441,7 @@
         body:JSON.stringify({
           model:'claude-sonnet-4-20250514',
           max_tokens:200,
-          messages:[{role:'user',content:`Tipping agent for Golden Pirate Base on Base blockchain by @${USERNAME}.\nRule: "${rule.label}" — ${rule.reward} USDC\nPost by @${post.username}: "${post.text}"\nLikes:${post.likes} Recasts:${post.recasts}\nTip genuine supporters, skip spam/bots.\nRespond ONLY raw JSON: {"decision":true,"reason":"one sentence"}`}]
+          messages:[{role:'user',content:`Tipping agent for Golden Pirate Base on Base by @${currentUsername}.\nRule: "${rule.label}" — ${rule.reward} USDC\nPost by @${post.username}: "${post.text}"\nLikes:${post.likes} Recasts:${post.recasts}\nTip genuine supporters, skip spam/bots.\nRespond ONLY raw JSON: {"decision":true,"reason":"one sentence"}`}]
         })
       });
       const d   = await res.json();
@@ -450,17 +453,13 @@
   // ── Agent loop ────────────────────────────────────────────────────────────
   async function toggleAgent() {
     if (running) {
-      stopFlag = true;
-      running  = false;
+      stopFlag=true; running=false;
       document.getElementById('btn-start').className='btn-start';
       document.getElementById('btn-start').innerHTML='▶  Start Agent — Live Farcaster Feed';
-      log('⛔ Agent stopped.','error');
-      return;
+      log('⛔ Agent stopped.','error'); return;
     }
-
-    running  = true;
-    stopFlag = false;
-    evals    = {}; txHashes = {}; posts = []; logLines = [];
+    running=true; stopFlag=false;
+    evals={}; txHashes={}; posts=[]; logLines=[];
     updateStats({scanned:0,approved:0,usdc:0});
     document.getElementById('cap-err').style.display='none';
     document.getElementById('btn-start').className='btn-start running';
@@ -468,7 +467,7 @@
     renderFeed();
 
     log('🏴‍☠️ TipJar Agent starting…');
-    log('Identity: @'+USERNAME+' · FID '+FID);
+    log('Identity: @'+currentUsername+' · FID '+currentFID);
     await sleep(500);
 
     try {
@@ -494,23 +493,18 @@
       if (stopFlag) break;
       const rule = activeRules.find(r=>r.id===post.type);
       if (!rule) {
-        evals[post.hash] = {decision:false,reason:'No active rule matches this post type.'};
-        updateCard(post.hash);
-        await sleep(100);
-        continue;
+        evals[post.hash]={decision:false,reason:'No active rule matches this post type.'};
+        updateCard(post.hash); await sleep(100); continue;
       }
       log('🔍 Evaluating @'+post.username+' — '+rule.label,'eval');
       const result = await evalPost(post,rule);
-      evals[post.hash] = result;
-      updateCard(post.hash);
+      evals[post.hash]=result; updateCard(post.hash);
       if (result.decision) {
         approved++;
-        totalUsdc = +(totalUsdc+parseFloat(rule.reward)).toFixed(2);
-        updateStats({approved, usdc:totalUsdc});
+        totalUsdc=+(totalUsdc+parseFloat(rule.reward)).toFixed(2);
+        updateStats({approved,usdc:totalUsdc});
         log('✅ @'+post.username+' approved — '+rule.reward+' USDC','tip');
-      } else {
-        log('⏭️  @'+post.username+' skipped');
-      }
+      } else { log('⏭️  @'+post.username+' skipped'); }
       await sleep(650);
     }
 
@@ -522,10 +516,6 @@
   }
 
   const sleep = ms => new Promise(r=>setTimeout(r,ms));
-
-  // ── Init ──────────────────────────────────────────────────────────────────
-  renderRules();
-  renderFeed();
 </script>
 
 </body>
